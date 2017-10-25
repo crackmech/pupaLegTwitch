@@ -1,0 +1,81 @@
+
+
+May  7 03:29:10 IST 2017
+./20170331_imaginPupa.bsh 
+python ./20170331_tmp_rtPlotsFromCSVsAndTarUpload.py
+
+python ./20170410_tmp_setArduinoTempAndLog.py
+./ArduinoLogs/20151023_PlotTempFromArduinoDataInset.py 1,inset=False,updateDelay=20,skippedRows=22,skippedFooter=1
+
+
+
+
+
+
+
+
+
+
+
+
+./20170331_imaginPupa.bsh
+python ./20170331_tmp_rtPlotsFromCSVsAndTarUpload.py
+
+./ArduinoLogs/20160523_ArduinoTempShiftLid.py 
+./ArduinoLogs/20151023_PlotTempFromArduinoDataInset.py 1,inset=False,updateDelay=20,skippedRows=22,skippedFooter=10
+
+
+
+
+
+taskset -c 0,2 ./20150803_rtCap.py 
+./20150811_rtPlots.py
+./ArduinoLogs/arduinoLog.py 
+
+watch -n 1205 taskset -c 4 nice -n 19 cp -rn /media/data/20150823/imageData/ /media/Green_5/20150823/
+
+
+cd /media/data/delete/; df -h | grep isw; ls| wc -l ; date;rm -r /media/data/delete/*;date; df -h | grep isw
+
+taskset -c 5 firefox
+
+taskset -c 4-7 ./LegTrackingGUI_20150726.py 
+
+
+------commands on 20160526----------------
+./untitled0.py
+./untitled0.py ; ./20160926_sendEmail.py
+
+./untitled0.py ; ./20160926_sendEmail.py;./20161017_continueImagingAfterCrash.py 
+
+ ./untitled0.py ; ./20160926_sendEmail.py;./20161017_continueImagingAfterCrash.py ; ./20160926_sendEmail.py
+
+
+./20160422_rtPlots_fromCSVs.py
+./ArduinoLogs/20160523_ArduinoTempShiftLid.py 
+./ArduinoLogs/20151023_PlotTempFromArduinoDataInset.py 1,inset=False,updateDelay=20,skippedRows=22,skippedFooter=10
+------commands on 20160526----------------
+
+date;for i in */; do echo "$i";ls "$i"| wc -l;done;date
+
+
+./20160218_PlotFromMultiCSVs.py
+
+
+
+------testing------
+bash /home/pointgrey/Desktop/updateFolder.bsh 
+#!/bin/bash
+for i in $(ls -d */)
+	do echo ${i%%/}
+	if [ $(ls -1A ${i%%/} | wc -l) -gt 0 ] ; then find ${i%%/}/ -name '*.jpeg' |tar -rf ${i%%/}.tar --files-from - --remove-files; fi
+done
+------delete with date log for all folders-------
+for i in $(ls); do date;echo ${i%%/}; rm -r ${i%%/}; done
+
+
+
+tar -cf - ./20170331_135248/ | pv -s `du -sb . | grep -o '[0-9]\+'` >/media/pointgrey/shared/123.tar
+
+
+

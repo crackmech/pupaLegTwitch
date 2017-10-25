@@ -1,0 +1,3 @@
+#!/bin/bash
+./untitled0.py False; if [ $? -ne 0 ]; then ./20160926_sendEmail.py;./20161017_continueImagingAfterCrash.py ; ./20160926_sendEmail.py;fi
+
