@@ -13,7 +13,6 @@ import time
 import subprocess as sp
 from datetime import datetime
 import re
-from threading import Thread
 import threading as th
 
 
@@ -144,28 +143,6 @@ for gtDir in genotypeDirs:
 t.join()
 
 
-
-
-#tarDir = '20161011_CS_data/imageData'
-#baseDir = os.path.join(inDir, tarDir)
-#outMovDir = os.path.join(outDir, *(baseDir.split(os.sep)[-3:]))
-#try:
-#    os.makedirs(outMovDir)
-#except FileExistsError:
-#    print('Output directory already exists')
-#
-#tarList = natural_sort([ os.path.join(baseDir,name) for name in os.listdir(baseDir) \
-#                         if os.path.isfile(os.path.join(baseDir, name)) and tarExt in name])
-#for tarFname in tarList:
-#    outFname = os.path.join(outMovDir, tarFname.split(os.sep)[-1].split('.')[0]+movExt)
-#    try:
-#        os.makedirs(outMovDir)
-#    except FileExistsError:
-#        pass
-#    imStackDict = tarReadtoDict(tarFname)
-#    t = Thread(target = DictToMovFFMPEG, args = (imStackDict, fps, nThreads, codec, outFname, ))
-#    t.start()
-#
 
 
 
