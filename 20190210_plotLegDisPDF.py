@@ -132,96 +132,98 @@ def random_color(alpha):
     color.append(alpha)
     return tuple(color)
 
+startAPF = 86
 
 
-baseDir = '/home/pointgrey/imaging/process'
+baseDir = '/home/aman/imaging/w1118'
 fileExtension = ['*_XY.csv']
 nThreads = 5
 k = 40 #sliding window size
 num_clusters = 40
-apfToPlot = 95
+
+pltColors = [random_color(alpha=0.6) for _ in xrange(100)]
 
 
-dirname = getFolder(baseDir)
-dirs = getDirList(dirname)
-
+baseDir = getFolder(baseDir)
+dirs = getDirList(baseDir)
+pltColors = [random_color(alpha=0.6) for _ in xrange(100)]
 print "Started on: " + present_time()
 for d in dirs:
     print '-----'+d+'-------'
-    currDir = os.path.join(dirname, d)
+    currDir = os.path.join(baseDir, d)
     nCsvs = getFilesList(os.path.join(currDir, 'csv'), fileExtension)
     try:
         apfs = getAPFList(os.path.join(currDir, 'camloop.txt'), nCsvs)
     except:
         print "Pupa details unkown"
-pltColors = [random_color(alpha=0.6) for _ in xrange(100)]
+        continue
+    print('data present for %dAPF - %dAPF'%(min(apfs.keys()),max(apfs.keys())))
+    tData = []
+    maxAPF = max(apfs.keys())
+    for apfToPlot in apfs.keys():
+        if apfToPlot>=startAPF:
+            print("processing for %dAPF on: %s"%( apfToPlot, present_time()))
+            dataFiles = apfs[apfToPlot]
+            dataFiles = [apfs[apfToPlot][x] for x in apfs[apfToPlot].keys() if x!='0APF']
+            pool = mp.Pool(processes=nThreads)
+            data = np.vstack(pool.map(readCsvs, dataFiles))
+            pool.close()
+            disData = np.zeros((len(data)))
+            for i in range(len(data)):
+                disData[i] = ((30 - data[i][0])**2 + (30 - data[i][1])**2)**0.5
+            tData.append(disData)
+    
+    hists = []
+    for x in tData:
+        hist, bins = np.histogram(x, bins=128, range=(0,30), normed=False)
+        hists.append(hist)
+    hists = np.asarray(hists)
+    
+    plt.imshow(np.transpose(hists[::-1,::-1]), cmap='jet')
+    plt.xticks(np.arange(0,len(apfs.keys()),3), np.arange(startAPF, maxAPF,3))
+    plt.savefig(d+'.svg')
+    plt.show()
+    plt.close()
 
-
-apfToPlot = 95
-from scipy.stats import norm
-#fig, ax = plt.subplots(1, 1)
-##mean, var, skew, kurt = norm.stats(moments='mvsk')
-#x = data#np.linspace(norm.ppf(0.01), norm.ppf(0.99), 100)
-#ax.plot(x, norm.pdf(x),'r-', lw=5, alpha=0.6, label='norm pdf')
-#plt.show()
-
-
-
-pdfs = []
-tData = []
-for apfToPlot in apfs.keys():
-    print("processing for %dAPF on: %s"%( apfToPlot, present_time()))
-    dataFiles = apfs[apfToPlot]
-    dataFiles = [apfs[apfToPlot][x] for x in apfs[apfToPlot].keys() if x!='0APF']
-    pool = mp.Pool(processes=nThreads)
-    data = np.vstack(pool.map(readCsvs, dataFiles))
-    pool.close()
-    disData = np.zeros((len(data)))
-    #print ("Started calculating EucDis on: %s"%present_time())
-    for i in range(len(data)):
-        disData[i] = ((30 - data[i][0])**2 + (30 - data[i][1])**2)**0.5
-    mean = np.mean(disData)
-    std  = np.std(disData)
-    pdfs.append(norm.pdf(disData,mean,std))
-    tData.append(disData)
 
 #for p,x, a in zip(pdfs,tData, apfs.keys()):
-#    plt.plot(x,p,'ro', alpha=0.4)
+#    aa = plt.plot(x,p,'ro', alpha=0.4)
+#    hist = plt.hist(x, bins=25, density=True, alpha=0.6, color='g')
 #    plt.title(a)
 #    plt.show()
-
-
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.collections import PolyCollection
-from matplotlib import colors as mcolors
-
-
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-
-
-def cc(arg):
-    return mcolors.to_rgba(arg, alpha=0.6)
-
-zs = apfs.keys()
-verts = []
-for z_,z in enumerate(zs):
-    verts.append(list(zip(tData[z_], pdfs[z_])))
-
-print ('poly calc on %s'%present_time())
-#poly = PolyCollection(verts, facecolors=pltColors[:len(verts)])
-poly = PolyCollection(verts)
-print ('plotting on'%present_time())
-poly.set_alpha(0.7)
-ax.add_collection3d(poly, zs=zs, zdir='y')
-ax.set_xlabel('X')
-ax.set_xlim3d(0, 10)
-ax.set_ylabel('Y')
-ax.set_ylim3d(-1, 4)
-ax.set_zlabel('Z')
-ax.set_zlim3d(0, 1)
-
-plt.show()
+#
+#
+#from mpl_toolkits.mplot3d import Axes3D
+#from matplotlib.collections import PolyCollection
+#from matplotlib import colors as mcolors
+#
+#
+#def cc(arg):
+#    return mcolors.to_rgba(arg, alpha=0.6)
+#
+#zs = apfsList
+#verts = []
+#for z_,z in enumerate(zs):
+#    verts.append(list(zip(tData[z_], pdfs[z_])))
+#
+#print ('poly calc on %s'%present_time())
+##poly = PolyCollection(verts, facecolors=pltColors[:len(verts)])
+#poly = PolyCollection(verts, facecolors=plt)
+#print ('plotting on'%present_time())
+#poly.set_alpha(0.7)
+#
+#
+#fig = plt.figure()
+#ax = fig.gca(projection='3d')
+#ax.add_collection3d(poly, zs=zs, zdir='y')
+#ax.set_xlabel('X')
+#ax.set_xlim3d(0, 10)
+#ax.set_ylabel('Y')
+#ax.set_ylim3d(-1, 4)
+#ax.set_zlabel('Z')
+#ax.set_zlim3d(0, 1)
+#
+#plt.show()
 
 
 

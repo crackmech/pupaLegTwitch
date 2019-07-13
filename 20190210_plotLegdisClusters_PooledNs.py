@@ -141,16 +141,25 @@ def random_color(alpha):
 
 baseDir = '/home/aman/imaging/w1118'
 fileExtension = ['*_XY.csv']
-nThreads = 5
+nThreads = 8
 k = 40 #sliding window size
-num_clusters = 40
+num_clusters = 100
+
+apfsToPlot = [87, 100]
 
 
-#baseDir = getFolder(baseDir)
+apfDataToPlot = {'20190110_211537_w1118': [94,104],
+                   '20190118_192353_w1118': [91,102],
+                   '20190125_185115_w1118': [91, 102],
+                   '20190131_150038_park25xLRRKex1': [87, 101],
+                   '20190206_234838_park25xLRRKex1': [84, 99]
+                   }
+baseDir = getFolder(baseDir)
 dirs = getDirList(baseDir)
 pltColors = [random_color(alpha=0.6) for _ in xrange(100)]
 
 print "Started on: " + present_time()
+apfWindows = [[],[]]
 for d in dirs:
     print '-----'+d+'-------'
     currDir = os.path.join(baseDir, d)
@@ -159,14 +168,16 @@ for d in dirs:
         apfs = getAPFList(os.path.join(currDir, 'camloop.txt'), nCsvs)
     except:
         print "Pupa details unkown"
-    for apfToPlot in apfs.keys():
+    apfsToPlot = [apf for apf in apfs.keys() if apf in apfDataToPlot[d.split(os.sep)[-1]]]
+    print apfsToPlot
+    for ap,apfToPlot in enumerate(apfsToPlot):
         print("processing for %dAPF"%apfToPlot)
         dataFiles = apfs[apfToPlot]
         dataFiles = [apfs[apfToPlot][x] for x in apfs[apfToPlot].keys() if x!='0APF']
         pool = mp.Pool(processes=nThreads)
         data = np.vstack(pool.map(readCsvs, dataFiles))
         pool.close()
-            
+    
         disData = np.zeros((len(data)))
         print ("Started calculating EucDis on: %s"%present_time())
         for i in range(len(data)):
@@ -175,22 +186,31 @@ for d in dirs:
         windows = np.zeros((len(data)-k, k))
         for i in range(len(data) - k):
             windows[i] = disData[i:i+k]
-        print ("Started clustering on: %s"%present_time())
-        kmeans = KMeans(n_clusters= num_clusters, n_init = 8, max_iter = 300, random_state = 0, n_jobs=4).fit(windows)
-        clusters_count = [[] for i in xrange(num_clusters)]
-        print ("---Done clustering on: %s"%present_time())
-        for i in range(len(kmeans.labels_)):
-            clusters_count[kmeans.labels_[i]].append(windows[i])
-        clusters_count = np.asarray(clusters_count)
-        print ("Started plotting on: %s"%present_time())
-        
-        dir_string_root = str(apfToPlot)+'APF_Plots_' + present_time()
-        os.mkdir(os.path.join(currDir, dir_string_root))
-        dir_string = os.path.join(currDir, dir_string_root, 'Window_length_' + str(k))	
-        os.mkdir(dir_string)
-        
-        saveClusPlts([clusters_count, k, num_clusters, dir_string])
-        print("---Done plotting on: %s"%present_time())
+        apfWindows[ap].extend(data)
+
+
+for dataClus in xrange(len(apfWindows)):
+    dat = np.vstack(apfWindows[dataClus])
+    apfWindows[dataClus] = dat
+    print apfWindows[dataClus].shape
+
+for dataClus in xrange(len(apfWindows)):
+    print ("Started clustering on: %s"%present_time())
+    kmeans = KMeans(n_clusters= num_clusters, n_init = 8, max_iter = 300, random_state = 0, n_jobs=nThreads).fit(windows)
+    clusters_count = [[] for i in xrange(num_clusters)]
+    print ("---Done clustering on: %s"%present_time())
+    for i in range(len(kmeans.labels_)):
+        clusters_count[kmeans.labels_[i]].append(windows[i])
+    clusters_count = np.asarray(clusters_count)
+    print ("Started plotting on: %s"%present_time())
+    
+    dir_string_root = str(apfToPlot)+'APF_Plots_' + present_time()
+    os.mkdir(os.path.join(baseDir, dir_string_root))
+    dir_string = os.path.join(baseDir, dir_string_root, 'Window_length_' + str(k))	
+    os.mkdir(dir_string)
+    
+    saveClusPlts([clusters_count, k, num_clusters, dir_string])
+    print("---Done plotting on: %s"%present_time())
     
 
 """
