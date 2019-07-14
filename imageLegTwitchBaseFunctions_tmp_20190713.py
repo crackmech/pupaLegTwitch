@@ -37,75 +37,8 @@ import Tkinter as tk
 #import math
 #import matplotlib.pyplot as plt
 
-
-
-saveImData = True
-
-try:
-    saveImData = sys.argv[1].lower() == 'true'
-except:
-    pass
-
-
-dirname = '/home/pointgrey/imaging/'
-#dirname = '/media/pointgrey/4TB_2/'
-secondaryDisk = '/media/pointgrey/shared/'
-
-home = '/home/pointgrey/'
-
-dirname = '/media/aman/data/'
-
-try:
-    startSegment = sys.argv[1]
-except:
-    pass
-
-saveRoiImage = False
-
-imData = []
-#roiVal = np.zeros((6,4))
-values = []
-img = []
-img2 = []
-
-roiVal = [504, 510, 110, 116]
-templateVal =  np.array([[10, 11, 13, 10, 10, 10], \
-                         [ 9, 10, 12, 10, 11, 11], \
-                         [10, 11, 12, 12, 10, 10], \
-                         [11, 10, 11, 11, 11, 11], \
-                         [11, 10, 12, 10, 11, 10], \
-                         [10, 10, 10, 10, 12, 10]],dtype = np.uint8)
-
-roiList = [roiVal]
-templateList = [templateVal]
-
-roiColors = [(255,0,0), (0,255,0), (0,0,255), (255,255,0), (255,0,255)]
-roiBorderThickness = 2
-
-templateKeyDict = {1: 'leg L1', \
-                   2: 'leg R1', \
-                   3: 'leg L2', \
-                   4: 'leg R2', \
-                   5: 'Background-1',\
-                   6: 'Background-2',\
-                   }        
-
-
-imfolder = 'imageData'
-roifolder = 'roi'
-csvfolder = 'csv'
-
-imResizeFactor = 0.5 #resize image to this factor for display feed of the camera
-nLegs = 4 # no. of legs to be tracked
-nBgs = 2 # no. of background templates to be tracked
-
-templateResizeFactor = 3 #resize image to this factor for display of the template
-
-nRois = nLegs+nBgs
-
-roiSelKeys = [ord(str(x)) for x in range(nRois)] # keys to be pressed on keyboard for selecting the roi
-
-
+try: input = raw_input
+except NameError: pass
 
 def present_time():
         return datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -324,15 +257,12 @@ def displayImageWithROI(windowName, imData, roilist, imArgs):
     cv2.imshow(windowName, img)
 
 
-
-
 #---------------------------------------------------------------------------------#
 
 #---------------------------------------------------------------------------------#
-
-def roiSel(roilist, imArgs, getROI = True):
+def initiateCam():
     '''
-    Standalone function to select ROIs from an image captured by the camera
+    initiates the first camera attached to the computer and returns the pointer for the image
     '''
     #Initiate camera
     c = fc2.Context()
@@ -343,18 +273,24 @@ def roiSel(roilist, imArgs, getROI = True):
     c.set_property(**p)
     c.start_capture()
     im = fc2.Image()
+    return c, im
+    
+
+def roiSelCam(roilist, imArgs, getROI = True):
+    '''
+    Standalone function to select ROIs from an image captured by the camera
+    '''
+    #Initiate camera
+    c, im = initiateCam()
     #Capture image
     c.retrieve_buffer(im)
     imData = np.array(im)
     #Select ROI from the captured image
-    while(1):
-        rois = selRoi(imData, roilist, imArgs, \
-                       getROI, showRoiImage = True, saveRoiImage = False)
-        if rois != "error":
-            break
+    roilist = selRoi(imData, roilist, imArgs, \
+                   getROI, showRoiImage = True, saveRoiImage = False)
     c.stop_capture()
     c.disconnect()
-    return rois
+    return roilist
 
 def displayCam(c, im, roilist, imArgs):
     '''
@@ -398,7 +334,111 @@ def CapNProc(c, im, roilist, templatelist, nFrames, saveDir, saveIm, imArgs):
             if nFrame == 10:
                 roilist = selRoi(imData, roilist, imArgs, \
                        getROI = False, showRoiImage = False, saveRoiImage = True)
-                templatelist = [getTemplate(imData, roi) for roi in roiList]
+                templatelist = [getTemplate(imData, roi) for roi in roilist]
+                if np.median(imData)>250: # to stop imaging if the image goes white predominantely
+                    #print("\n-------No pupa to Image anymore!!-------")
+                    logFileWrite(logfname, "------- No pupa to image anymore!! Imaging exited -------", printContent = True)
+                    sys.exit(0)
+            for i, template in enumerate(templatelist):
+                legCoords[nFrame, i:i+2] = trackTemplate(template, roilist[i], imData, imArgs['trackImSpread'])
+            #print('\ni: %d\n nFrame: %d\ntemplateList length: %d\n roiList length: %d'%(i,nFrame, len(templatelist), len(roilist)))
+            if saveIm == True:
+                try:
+                    startNT(cv2.imwrite,(os.path.join(saveDir, str(nFrame)+'.jpeg'),imData,))
+                except:
+                    print("error saving %s"+str(nFrame))
+            elif saveIm == False:
+                if nFrame%1000 == 0:
+                    startNT(cv2.imwrite,(os.path.join(saveDir, str(nFrame)+'.jpeg'),imData,))
+        except KeyboardInterrupt:
+            logFileWrite(logfname, "\nCamera display started on %s"%present_time(), printContent = True)
+            roilist = displayCam(c, im, roilist, imArgs)
+            logFileWrite(logfname, "Camera display exited on %s"%present_time(), printContent = False)
+    logFileWrite(logfname, present_time(), printContent = False)
+    logFileWrite(logfname, '----------------------', printContent = False)
+    values = legCoords#np.c_[l1,r1,l2,r2,bg,bg1]
+    return values
+
+
+#---------------------------------------------------------------------------------#
+
+#---------------------------------------------------------------------------------#
+   
+     
+def roiSelVid(vfname, roilist, imArgs, getROI = True):
+    '''
+    Standalone function to select ROIs from the video
+    '''
+    cap = cv2.VideoCapture(vfname)
+    while(cap.isOpened()):
+        ret, frame = cap.read()
+        imData = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        cv2.waitKey(10)
+        roilist = selRoi(imData, roilist, imArgs, \
+                         getROI, showRoiImage = True, saveRoiImage = False)
+        break
+    cap.release()
+    return roilist
+
+def getFrameFromVideo(vfname, frameN):
+    '''
+    returns the specified frame number from the video file
+    '''
+    cap = cv2.VideoCapture(vfname)
+    cap.set(cv2.CAP_PROP_POS_FRAMES, frameN-1)
+    ret, frame = cap.read()
+    cap.release()
+    if ret:
+        return frame
+    else:
+        print('No frame at given position')
+
+def displayVid(vfname, roilist, imArgs):
+    '''
+    Starts displaying Video from the input video file,
+    update the ROIs by pressing 'u'
+    '''
+    cap = cv2.VideoCapture(vfname)
+    
+    while(cap.isOpened()):
+        ret, imData = cap.read()
+        if ret:
+            displayImageWithROI('Displaying Video', imData, roilist, imArgs)
+            k = cv2.waitKey(100) & 0xFF
+            if k == ord('q'):
+                break
+            if k == ord("u"):
+                roilist = selRoi(imData, roilist, imArgs, \
+                                  getROI = True, showRoiImage = True, saveRoiImage = True)
+        else:
+            cap.release()
+            cv2.destroyAllWindows()
+    cv2.destroyAllWindows()
+    return roilist
+
+def decodeNProc(vfname, roilist, templatelist, imArgs):
+    '''
+    Function for capturing images from the camera and then tracking already defined
+    templates. The template images are updated (using ROIs defined earlier)
+    everytime the function is called. Pressing 'Ctrl+c' pauses the tracking loop
+    and starts displaying live images from the camera. This can be used to select
+    new templates while the function is running.
+    '''
+    logfname = imArgs['logfname']
+    print("%s Press 'Ctrl+C' to pause analysis and start live display"%present_time())
+    legCoords = np.zeros((nFrames,2*imArgs['nRois']), dtype = 'uint16')
+    logFileWrite(logfname, present_time(), printContent = False)
+    for nFrame in range (0,nFrames):
+        try:
+            if nFrame%100 == 0:
+                sys.stdout.write("\r%s: %d"%(present_time(),nFrame))
+                sys.stdout.flush()
+            c.retrieve_buffer(im)
+            imData = np.array(im)
+            if nFrame == 10:
+                roilist = selRoi(imData, roilist, imArgs, \
+                       getROI = False, showRoiImage = False, saveRoiImage = True)
+                templatelist = [getTemplate(imData, roi) for roi in roilist]
                 if np.median(imData)>250: # to stop imaging if the image goes white predominantely
                     #print("\n-------No pupa to Image anymore!!-------")
                     logFileWrite(logfname, "------- No pupa to image anymore!! Imaging exited -------", printContent = True)
@@ -424,91 +464,3 @@ def CapNProc(c, im, roilist, templatelist, nFrames, saveDir, saveIm, imArgs):
     return values
    
      
-try: input = raw_input
-except NameError: pass
-
-
-pupaDetails = input('Enter the pupa details : <genotype> - <APF> - <time> - <date>\n')
-
-genotype = pupaDetails.split(' -')[0]
-
-imDuration = 20      #in minutes
-trackImSpread = 30  #number of pixles around ROI where the ROI will be tracked
-totalLoops = 500    #total number of times the imaging loop runs
-#delay = 0           #in seconds, delay between capturing each loop of duration = imDuration
-#step  = 1000        #step for updating resting position of the leg, to calculate eucDis
-
-try:
-    baseDir, imDir, roiDir, csvDir = createDirs(dirname, genotype, imfolder, roifolder, csvfolder)
-except:
-    print("No directories available, please check!!!")
-    sys.exit()
-
-logFileName = os.path.join(baseDir, "camloop.txt")
-
-logFileWrite(logFileName, pupaDetails, printContent = False)
-try:
-    startSegment = getStartSeg()
-except:
-    startSegment = 0
-
-roiList = selPreviousRois(roiDir, roiVal, nRois)
-
-SaveDirDuration = int(120/imDuration)
-
-nFrames = int((imDuration*60*100)+1)
-nFrames = 601
-print(nFrames)
-
-logFileWrite(logFileName, '----------------------', printContent = False)
-imArgs = {'nLegs': nLegs,
-          'roiColors': roiColors, 
-          'roiBorderThickness': roiBorderThickness, 
-          'nRois': nRois,
-          'imResizeFactor': imResizeFactor,
-          'templateResizeFactor': templateResizeFactor,
-          'logfname': logFileName,
-          'baseDir': baseDir,
-          'imDir': imDir,
-          'roiDir': roiDir,
-          'csvDir': csvDir,
-          'trackImSpread' : trackImSpread,
-          'roiVal' : roiVal,
-          'templateKeys': templateKeyDict
-           }
-
-roiList = roiSel(roiList, imArgs, getROI = True)
-roiFileName = roiDir+"ROIs_"+present_time()+".txt"
-np.savetxt(roiFileName, roiVal, fmt = '%d', delimiter = ',')
-os.chdir(imDir)
-
-c = fc2.Context()
-c.connect(*c.get_camera_from_index(0))
-im = fc2.Image()
-c.start_capture()
-c.retrieve_buffer(im)
-imData = np.array(im)
-templateList = [getTemplate(imData, roi) for roi in roiList]
-
-for nLoop in range (startSegment,totalLoops):
-    dirTime = present_time()
-    try:
-        saveDir = os.path.join(imDir, dirTime)
-        os.mkdir(saveDir)
-    except:
-        saveImData = False
-        saveDir = os.path.join(home, dirTime)
-        os.mkdir(saveDir)
-    logFileWrite(logFileName, "Directory : "+saveDir, printContent = True)
-    trackedValues = CapNProc(c, im, roiList, templateList, nFrames, saveDir, saveImData, imArgs)
-    np.savetxt(os.path.join(csvDir, dirTime+"_XY.csv"), trackedValues, fmt = '%-7.2f', delimiter = ',')
-    print("\r\nProcesing for loop number: "+str(nLoop+1))
-
-
-c.stop_capture()
-c.disconnect()
-
-logFileWrite(logFileName, '----------------------', printContent = False)
-#
-#
-
