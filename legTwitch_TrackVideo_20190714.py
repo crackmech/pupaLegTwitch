@@ -12,7 +12,10 @@ import numpy as np
 import os
 import glob
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
 try: input = raw_input
 except NameError: pass
 
@@ -21,22 +24,33 @@ saveRoiImage = False
 
 #dirname = '/home/pointgrey/imaging/'
 ##dirname = '/media/pointgrey/4TB_2/'
+<<<<<<< HEAD
 #secondaryDisk = '/media/pointgrey/shared/'
 #home = '/home/pointgrey/'
 home = '/home/aman/'
 dirname = '/media/aman/data/'
 
 vidDir = ''
+=======
+dirname = '/media/aman/data/'
+
+>>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
 #pupaDetails = input('Enter the pupa details : <genotype> - <APF> - <time> - <date>\n')
 imResizeFactor = 0.5 #resize image to this factor for display feed of the camera
 templateResizeFactor = 4 #resize image to this factor for display of the template
 nLegs = 4 # no. of legs to be tracked
 nBgs = 2 # no. of background templates to be tracked
+<<<<<<< HEAD
 imDuration = 20      #in minutes
 trackImSpread = 30  #number of pixles around ROI where the ROI will be tracked
 
 
 genotype = ''#pupaDetails.split(' -')[0]
+=======
+trackImSpread = 100  #number of pixles around ROI where the ROI will be tracked
+
+genotype = 'VideoTmp'#pupaDetails.split(' -')[0]
+>>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
 imfolder = 'imageData'
 roifolder = 'roi'
 csvfolder = 'csv'
@@ -48,8 +62,11 @@ except:
     sys.exit()
 
 roiVal = [504, 510, 110, 116]
+<<<<<<< HEAD
 templateList = [np.zeros((10,10), dtype=np.uint8)]
 
+=======
+>>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
 roiColors = [(255,0,0), (0,255,0), (0,0,255), (255,255,0), (255,0,255)]
 roiBorderThickness = 2
 
@@ -59,6 +76,7 @@ templateKeyDict = {1: 'leg L1', 2: 'leg R1', \
                    }        
 
 nRois = nLegs+nBgs
+<<<<<<< HEAD
 roiSelKeys = [ord(str(x)) for x in range(nRois)] # keys to be pressed on keyboard for selecting the roi
 
 logFileName = os.path.join(baseDir, "camloop.txt")
@@ -71,6 +89,12 @@ nFrames = int((imDuration*60*100)+1)
 nFrames = 601
 print(nFrames)
 
+=======
+
+logFileName = os.path.join(baseDir, "camloop.txt")
+roiList = imLegTw.selPreviousRois(roiDir, roiVal, nRois)
+
+>>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
 imLegTw.logFileWrite(logFileName, '----------------------', printContent = False)
 imArgs = {'nLegs': nLegs,
           'roiColors': roiColors, 
@@ -88,6 +112,7 @@ imArgs = {'nLegs': nLegs,
           'templateKeys': templateKeyDict
            }
 
+<<<<<<< HEAD
 vidDir = '/media/aman/data/20190714_050816_12/imageData/'
 vidFlist = glob.glob(os.path.join(vidDir, '*.avi'))
 
@@ -115,5 +140,18 @@ for vidFname in vidFlist:
 #
 #imLegTw.logFileWrite(logFileName, '----------------------', printContent = False)
 
+=======
+vidDir = '/media/aman/data/work/pupaData/20190107_212915_34750TMP/imageData'
+vidFlist = glob.glob(os.path.join(vidDir, '*.avi'))
+
+for nVid, vidFname in enumerate(vidFlist):
+    roiList = imLegTw.roiSelVid(vidFname, roiList, imArgs, getROI = True)
+    dirTime = imLegTw.present_time()
+    print(dirTime)
+    imLegTw.logFileWrite(logFileName, "Video file : %s"%vidFname, printContent = True)
+    trackedValues = imLegTw.decodeNProcParllel(vidFname, roiList, displayfps=100, imArgs = imArgs, nThreads=4)
+    np.savetxt(os.path.join(csvDir, dirTime+"_XY.csv"), trackedValues, fmt = '%-7.2f', delimiter = ',')
+    print("\r\nProcesing for video file %d/%d: "%(nVid, len(vidFlist)))
+>>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
 
 
