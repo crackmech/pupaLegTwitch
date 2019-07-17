@@ -23,41 +23,21 @@ First four ROIs are from the different legs (L1, R1, L2 and R2), and the fifth
 ROI is from the background. The output is 
 
 """
-import sys
-if sys.version_info[0] < 3:
-    import tkFileDialog as tkd
-    import Tkinter as tk
-else:
-    import tkinter.filedialog as tkd
-    import tkinter as tk
-
-#import flycapture2 as fc2
+import flycapture2 as fc2
 import numpy as np
 import cv2
 from datetime import datetime
 import sys
-#from thread import start_new_thread as startNT
-import threading as th
+from thread import start_new_thread as startNT
 import os
-<<<<<<< HEAD
 import tkFileDialog as tkd
 import Tkinter as tk
-<<<<<<< HEAD
-
-#import time
-=======
 import multiprocessing as mp
-=======
-#import tkFileDialog as tkd
-#import Tkinter as tk
-#import multiprocessing as mp
->>>>>>> e4989ef88ec6acf025349009697604b564dd7f30
 import itertools
-import glob
 import re
+import subprocess as sp
 
 import time
->>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
 #import math
 #import matplotlib.pyplot as plt
 
@@ -71,25 +51,6 @@ def natural_sort(l):
     convert = lambda text: int(text) if text.isdigit() else text.lower() 
     alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
     return sorted(l, key = alphanum_key)
-
-def getFolder(initialDir, title):
-    '''
-    GUI funciton for browsing and selecting the folder
-    '''    
-    root = tk.Tk()
-    initialDir = tkd.askdirectory(parent=root,
-                initialdir = initialDir, title=title)
-    root.destroy()
-    return initialDir+'/'
-
-def getDirList(folder):
-    return natural_sort([os.path.join(folder, name) for name in os.listdir(folder) if os.path.isdir(os.path.join(folder, name))])
-
-def getFiles(dirname, extList):
-    filesList = []
-    for ext in extList:
-        filesList.extend(glob.glob(os.path.join(dirname, ext)))
-    return natural_sort(filesList)
 
 def logFileWrite(logfname, content, printContent = False):
     '''Create log files'''
@@ -135,53 +96,6 @@ def createDirs(dirname, genotype, imfolder, roiFolder, csvFolder):
         print("Not able to create directories")
         pass
 
-def createDir(dirname):
-    '''
-    '''
-    try:
-        os.mkdir(dirname)
-    except:
-        print('Not able to create directory: %s'%dirname)
-
-def createDirsCheck(dirname, genotype, imfolder, roiFolder, csvFolder, 
-                    baseDir = True, imDir = True, roiDir = True, csvDir = True):
-    '''
-    creates directories for saving images and csvs
-    '''
-    #create base directory for all data using current date as the foldername
-    dirs = os.listdir(dirname)
-    
-    dirList = {'baseDir' : dirname, 'imDir' : '', 'roiDir' : '', 'csvDir' : ''}
-    try:
-        tmpFname = os.path.join(dirname, 'tmpFolder')
-        os.mkdir(tmpFname)
-        os.rmdir(tmpFname)
-        if baseDir:
-            baseDir = os.path.join(dirname, present_time()+'_'+genotype)
-            if baseDir not in dirs:
-                createDir(baseDir)
-                dirname = baseDir
-        imDir= os.path.join(dirname, imfolder)
-        roiDir = os.path.join(dirname, roiFolder)
-        csvDir = os.path.join(dirname, csvFolder)
-        if imDir:
-            if imDir not in dirs:
-                createDir(imDir)
-        if roiDir:
-            if roiDir not in dirs:
-                createDir(roiDir)
-        if csvDir:
-            if csvDir not in dirs:
-                createDir(csvDir)
-        dirList['baseDir'] = dirname
-        dirList['imDir'] = imDir
-        dirList['roiDir'] = roiDir
-        dirList['csvDir'] = csvDir
-        return dirList['baseDir'], dirList['imDir'], dirList['roiDir'], dirList['csvDir']
-    except:
-        print("Not able to create output directories , please check!!!\nExiting the code")
-        sys.exit()
-
 def selPreviousRois(roiDir, roival, nRois):
     '''
     returns the ROIs by reading the ROI values from a previous ROI file
@@ -207,7 +121,6 @@ def resizeImage(imData, resizefactor):
 
 drawing = False # true if mouse is pressed
 ix,iy = -1,-1
-img2 = []
 def DrawROI(event,x,y,flags,param):
     '''
     function for drawing ROI on the image.
@@ -275,11 +188,10 @@ def selRoi(imData, roilist, imArgs, \
         roiFileName = os.path.join(imArgs['roiDir'], "ROIs_"+present_time()+".txt")
         np.savetxt(roiFileName, roiVal, fmt = '%d', delimiter = ',')
         logFileWrite(imArgs['logfname'], "Selected new ROIs", printContent = False)
-    roiImageName = os.path.join(imArgs['roiDir'], present_time()+"_ROI.jpeg")
-    roilist = ShowImageWithROI(imDataColor, roilist, roiImageName, imArgs, showRoiImage, saveRoiImage)
+    roilist = ShowImageWithROI(imDataColor, roilist, imArgs, showRoiImage, saveRoiImage)
     return roilist
 
-def ShowImageWithROI(imData, roilist, roifname, imArgs, showRoiImage = True, saveRoiImage = False):
+def ShowImageWithROI(imData, roilist, imArgs, showRoiImage = True, saveRoiImage = False):
     '''
     Displays the imData with ROIs that are selected.
     If saveRoiImage is true, the image with ROIs marked on it is saved
@@ -295,14 +207,9 @@ def ShowImageWithROI(imData, roilist, roifname, imArgs, showRoiImage = True, sav
         img = resizeImage(imData, imresizeFactor)
         
         if saveRoiImage == True:
-            roiIm = cv2.cvtColor(imgData, cv2.COLOR_GRAY2BGR)
-            for i, roi in enumerate(roilist):
-                if i >= imArgs['nLegs']:
-                    i = imArgs['nLegs']
-                cv2.rectangle(roiIm, (roi[0], roi[2]), (roi[1], roi[3]), 
-                              imArgs['roiColors'][i], imArgs['roiBorderThickness'])
-            cv2.imwrite(roifname, roiIm)
-            logFileWrite(imArgs['logfname'], 'Saved ROI Image as : '+ roifname, printContent = False)
+            roiImageName = os.path.join(imArgs['roiDir'], present_time()+"_ROI.jpeg")
+            cv2.imwrite(roiImageName,img)
+            logFileWrite(imArgs['logfname'], 'Saved ROI Image as : '+ roiImageName, printContent = False)
             
         if showRoiImage == True:
             while(1):
@@ -326,12 +233,6 @@ def getTemplate(imData, roi):
     Returns the template from the given image data using roi values
     '''
     template = imData[roi[2]:roi[3], roi[0]:roi[1]]
-<<<<<<< HEAD
-    if imData.shape[-1]<3:
-        return template
-    else:
-        return cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
-=======
     if len(imData.shape)>2:
         if imData.shape[-1]<3:
             return template
@@ -339,7 +240,6 @@ def getTemplate(imData, roi):
             return cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
     else:
         return template
->>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
 
 def trackTemplate(template, roi, imData, trackImSpread):
     '''
@@ -368,15 +268,12 @@ def displayImageWithROI(windowName, imData, roilist, imArgs):
     img = resizeImage(imData, imArgs['imResizeFactor'])
     cv2.imshow(windowName, img)
 
-<<<<<<< HEAD
-=======
 def displayIm(windowName, imData, sleepTime):
     '''
     '''
     cv2.imshow(windowName, imData)
     return cv2.waitKey(sleepTime) & 0xFF
 
->>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
 
 #---------------------------------------------------------------------------------#
 
@@ -385,7 +282,6 @@ def initiateCam():
     '''
     initiates the first camera attached to the computer and returns the pointer for the image
     '''
-    import flycapture2 as fc2
     #Initiate camera
     c = fc2.Context()
     c.connect(*c.get_camera_from_index(0))
@@ -466,12 +362,12 @@ def CapNProc(c, im, roilist, templatelist, nFrames, saveDir, saveIm, imArgs):
             #print('\ni: %d\n nFrame: %d\ntemplateList length: %d\n roiList length: %d'%(i,nFrame, len(templatelist), len(roilist)))
             if saveIm == True:
                 try:
-                    th.Thread(target = cv2.imwrite, args = (os.path.join(saveDir, str(nFrame)+'.jpeg'),imData,))
+                    startNT(cv2.imwrite,(os.path.join(saveDir, str(nFrame)+'.jpeg'),imData,))
                 except:
                     print("error saving %s"+str(nFrame))
             elif saveIm == False:
                 if nFrame%1000 == 0:
-                    th.Thread(target = cv2.imwrite, args = (os.path.join(saveDir, str(nFrame)+'.jpeg'),imData,))
+                    startNT(cv2.imwrite,(os.path.join(saveDir, str(nFrame)+'.jpeg'),imData,))
         except KeyboardInterrupt:
             logFileWrite(logfname, "\nCamera display started on %s"%present_time(), printContent = True)
             roilist = displayCam(c, im, roilist, imArgs)
@@ -515,30 +411,17 @@ def getFrameFromVideo(vfname, frameN):
     else:
         print('No frame at given position')
 
-<<<<<<< HEAD
-def displayVid(vfname, roilist, imArgs):
-=======
 def displayVid(vfname, roilist, imArgs, fps):
->>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
     '''
     Starts displaying Video from the input video file,
     update the ROIs by pressing 'u'
     '''
     cap = cv2.VideoCapture(vfname)
-<<<<<<< HEAD
-    
-    while(cap.isOpened()):
-        ret, imData = cap.read()
-        if ret:
-            displayImageWithROI('Displaying Video', imData, roilist, imArgs)
-            k = cv2.waitKey(100) & 0xFF
-=======
     while(cap.isOpened()):
         ret, imData = cap.read()
         if ret:
             displayImageWithROI('Press "u" to update ROIs', imData, roilist, imArgs)
             k = cv2.waitKey(int(1000/fps)) & 0xFF
->>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
             if k == ord('q'):
                 break
             if k == ord("u"):
@@ -550,50 +433,6 @@ def displayVid(vfname, roilist, imArgs, fps):
     cv2.destroyAllWindows()
     return roilist
 
-<<<<<<< HEAD
-def decodeNProc(vfname, roilist, templatelist, imArgs):
-    '''
-    Function for capturing images from the camera and then tracking already defined
-    templates. The template images are updated (using ROIs defined earlier)
-    everytime the function is called. Pressing 'Ctrl+c' pauses the tracking loop
-    and starts displaying live images from the camera. This can be used to select
-    new templates while the function is running.
-    '''
-    logfname = imArgs['logfname']
-    print("%s Press 'Ctrl+C' to pause analysis and start live display"%present_time())
-    legCoords = np.zeros((nFrames,2*imArgs['nRois']), dtype = 'uint16')
-    logFileWrite(logfname, present_time(), printContent = False)
-    for nFrame in range (0,nFrames):
-        try:
-            if nFrame%100 == 0:
-                sys.stdout.write("\r%s: %d"%(present_time(),nFrame))
-                sys.stdout.flush()
-            c.retrieve_buffer(im)
-            imData = np.array(im)
-            if nFrame == 10:
-                roilist = selRoi(imData, roilist, imArgs, \
-                       getROI = False, showRoiImage = False, saveRoiImage = True)
-                templatelist = [getTemplate(imData, roi) for roi in roilist]
-                if np.median(imData)>250: # to stop imaging if the image goes white predominantely
-                    #print("\n-------No pupa to Image anymore!!-------")
-                    logFileWrite(logfname, "------- No pupa to image anymore!! Imaging exited -------", printContent = True)
-                    sys.exit(0)
-            for i, template in enumerate(templatelist):
-                legCoords[nFrame, i:i+2] = trackTemplate(template, roilist[i], imData, imArgs['trackImSpread'])
-            #print('\ni: %d\n nFrame: %d\ntemplateList length: %d\n roiList length: %d'%(i,nFrame, len(templatelist), len(roilist)))
-            if saveIm == True:
-                try:
-                    startNT(cv2.imwrite,(os.path.join(saveDir, str(nFrame)+'.jpeg'),imData,))
-                except:
-                    print("error saving %s"+str(nFrame))
-            elif saveIm == False:
-                if nFrame%1000 == 0:
-                    startNT(cv2.imwrite,(os.path.join(saveDir, str(nFrame)+'.jpeg'),imData,))
-        except KeyboardInterrupt:
-            logFileWrite(logfname, "\nCamera display started on %s"%present_time(), printContent = True)
-            roilist = displayCam(c, im, roilist, imArgs)
-            logFileWrite(logfname, "Camera display exited on %s"%present_time(), printContent = False)
-=======
 def decodeNProc(vfname, roilist, displayfps, imArgs):
     '''
     returns the tracking data for the selected ROIs from the video file
@@ -626,15 +465,10 @@ def decodeNProc(vfname, roilist, displayfps, imArgs):
         else:
             cap.release()
             cv2.destroyAllWindows()
->>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
     logFileWrite(logfname, present_time(), printContent = False)
     logFileWrite(logfname, '----------------------', printContent = False)
     values = legCoords#np.c_[l1,r1,l2,r2,bg,bg1]
     return values
-<<<<<<< HEAD
-   
-     
-=======
   
 def trackAllTemplates(templatelist, roilist, imArgs, imData):
     '''
@@ -644,13 +478,12 @@ def trackAllTemplates(templatelist, roilist, imArgs, imData):
         trackCoords[i:i+2] = trackTemplate(template, roilist[i], imData, imArgs['trackImSpread'])
     return trackCoords
     
-def procVideo(poolArgs):
-    vfname, roilist, templatelist, frameStep, imArgs, groupNumber = poolArgs
+def procVideo((vfname, roilist, templatelist, frameStep, imArgs, group_number)):
     cap = cv2.VideoCapture(vfname)
-    cap.set(cv2.CAP_PROP_POS_FRAMES, frameStep * groupNumber)
+    cap.set(cv2.CAP_PROP_POS_FRAMES, frameStep * group_number)
     legCoords = np.zeros((frameStep,2*imArgs['nRois']), dtype = np.uint16)
     proc_frames = 0
-    #print('Started processing on processor: %d' %groupNumber)
+    print('Started processing on processor: %d' %group_number)
     while proc_frames < frameStep:
         ret, imData = cap.read()
         if ret:
@@ -660,169 +493,170 @@ def procVideo(poolArgs):
     cap.release()
     return legCoords
 
-def decodeNProcParllel(vfname, roilist, displayfps, imArgs, pool, nThreads):
+def decodeNProcParllel(vfname, roilist, displayfps, imArgs, nThreads):
     '''
     returns the tracking data for the selected ROIs from the video file
     '''
     logfname = imArgs['logfname']
-    roiFname = os.path.join(imArgs['roiDir'], vfname.split(os.sep)[-1]+'_'+present_time()+'.jpeg')
     logFileWrite(logfname, present_time(), printContent = False)
     startTime = time.time()
+    print("Started processing at: %s"%present_time())
     cap = cv2.VideoCapture(vfname)
-    nFrames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-    frameStep =  int(nFrames // nThreads)
-    print("Started processing with frameStep %d, on %d threads at: %s"%(frameStep, nThreads, present_time()))
+    frameStep =  int(cap.get(cv2.CAP_PROP_FRAME_COUNT) // nThreads)
     ret, imData = cap.read()
     if ret:
         imData = cv2.cvtColor(imData, cv2.COLOR_RGB2GRAY)
-        ShowImageWithROI(imData, roilist, roiFname, imArgs, showRoiImage = False, saveRoiImage = True)
         templatelist = [getTemplate(imData, roi) for roi in roilist]
-        mpArgs = zip(itertools.repeat(vfname), 
-                     itertools.repeat(roilist), \
-                     itertools.repeat(templatelist), \
-                     itertools.repeat(frameStep), \
-                     itertools.repeat(imArgs), \
-                     range(nThreads)
-                     )
-        legCoords = pool.map(procVideo, mpArgs)
+        mpArgs = itertools.izip(itertools.repeat(vfname), \
+                                itertools.repeat(roilist), \
+                                itertools.repeat(templatelist), \
+                                itertools.repeat(frameStep), \
+                                itertools.repeat(imArgs), \
+                                range(nThreads)
+                                )
+        legCoords = mp.Pool(nThreads).map(procVideo, mpArgs)
         legCoordsStack = np.zeros((len(legCoords)*legCoords[0].shape[0], legCoords[0].shape[1]), dtype=np.uint16)
         for i, coords in enumerate(legCoords):
             legCoordsStack[i*frameStep:(i+1)*frameStep] = coords
         print(len(legCoords), legCoords[0].shape, legCoordsStack.shape, legCoordsStack.max(), legCoordsStack.min())
-        timeTaken = time.time()-startTime
-        print('Done processing in %0.2f Seconds, at: %s (%0.3fFPS)' %(timeTaken, present_time(), nFrames/timeTaken))
+        print('Done processing in %0.2f Seconds, at: %s' %(time.time()-startTime,present_time()))
         cap.release()
         return legCoordsStack
 
+import tarfile
 
-
-
-
-
-import math
-import matplotlib.pyplot as plt
-import subprocess
-
-def findOffset(data):
+def tarFolderReadtoDict(tarName, nCurThrds):
     '''
-    returns the array of offset values for 'data'. This offset tells the
-    most frequent position of the leg in the data.
+    read contents of the imageData tar folder into a dict
     '''
-    offset = np.zeros((len(data[0,:])))
-    for leg in range (0,len(data[0,:])):
-        counts = np.bincount(data[:,leg])
-        offset[leg] = np.argmax(counts)#most frequent point in the data taken as offset
-    return offset
-
-
-def calcAngles(data,offset):
-    '''
-    returns the array containing eucledian distances and angles calculated
-    from the given X,Y values in the 'data'. It takes care of the offset,
-    i.e. the most frequent position of the leg in the 'data'
-    '''
-    angles = np.zeros((data.shape[0],data.shape[1]),dtype='float64')
-    for leg in range(0,data.shape[1],2):
-        for frame in range (0, data.shape[0]):
-            x = data[frame,leg]-offset[leg]
-            y = data[frame,leg+1]-offset[leg+1]
-            if (x==0 or y==0 ):
-                continue
-            else:
-                angles[frame,(leg)] = math.sqrt(math.pow(x,2)+math.pow(y,2))
-                angles[frame,((leg)+1)] = math.degrees(math.atan2(y,x))
-    return angles
-
-def csvToData(data, step, anglesFileName):
-    '''
-    feed 'data' with x,y coordinates and get output as array with:
-    Eucledian distance, angle of movement in degrees
-    '''
-    angles = np.zeros((len(data),len(data[0,:])),dtype='float64')
-    segments = int(len(data)/step)
-    for segment in range(0,segments):
-        dataSegment = data[segment*step:(segment+1)*step,:]
-        offset = findOffset(dataSegment)
-        anglesSegment = calcAngles(dataSegment, offset)
-        angles[segment*step:(segment+1)*step,:] = anglesSegment
-    np.savetxt(anglesFileName, angles, fmt='%-7.2f', delimiter = ',')
-    return angles
-
-def eucDistSubPlotProps(ax, color, Leglabel):
-    '''
-    function used to set subplot properties in the function 'plotDistance'
-    '''
-    ax.set_yticklabels((Leglabel+'   .',20,40,60,80))
-    for n, tl in enumerate(ax.yaxis.get_ticklabels()):
-        if n==0:
-            tl.set_color(color)
-        else:
-            tl.set_color('k')
-    return ax
+    print('Reading tar file from %s # Current Threads: %d '%(tarName, nCurThrds))
+    readTime = time.time()
+    tar = tarfile.open(tarName,'r|') 
+    tarStack = {}
+    for f in tar:
+        if f.isfile():
+            c = tar.extractfile(f).read()
+            fname = f.get_info()['name']
+            tarStack[fname] = c
+    tar.close()
+    print('Read %s at %s in: %.02f Seconds, # Current Threads: %d '%(\
+            tarName, present_time(), (time.time()-readTime), nCurThrds))
+    return tarStack
     
-def plotDistance(data, titletxt, plotName):
+def ffmpegCommand(fps, nThreads, codec, outfname):
     '''
-    plots the eucledian distance using 'data' and saves the plot with
-    'plotName' and title as 'titletxt'
+    creates a ffmpeg command for subprocess
     '''
-    global ax
-    for i in range(0,5):
-        nPlot = 515 - i
-        ax = plt.subplot(nPlot)
-        ax.set_yticks((0,10,20,30,40))
-        if i==0:
-            color ='blue'
-            ax = eucDistSubPlotProps(ax, color, 'L1')
-            ax.set_xticks((20000,40000,60000,80000,100000,120000))
-            ax.set_xticklabels((200,400,600,800,1000,1200))
-            plt.xlabel('time (Seconds)')
-            
-        elif i==1:
-            color ='green'
-            ax = eucDistSubPlotProps(ax, color, 'R1')
-            ax.set_xticklabels(())
-            ax.title.set_visible(False)
-            ax.set_ylabel('Distance (um)')
-        elif i==2:
-            color ='red'
-            ax = eucDistSubPlotProps(ax, color, 'L2')
-            ax.set_xticklabels(())
-            ax.title.set_visible(False)
-        elif i==3:
-            color ='cyan'
-            ax = eucDistSubPlotProps(ax, color, 'R2')
-            ax.set_xticklabels(())
-            ax.title.set_visible(False)
-        elif i==4:
-            color ='black'
-            ax = eucDistSubPlotProps(ax, color, 'BG')
-            ax.set_xticklabels(())
-            ax.title.set_visible(False)
-        plt.plot(data[:,2*i], color = color)
-        plt.subplots_adjust(hspace = .001)
-        plt.suptitle(titletxt)
-        plt.xlim(0,120000)
-        plt.ylim(0,60)
-    plt.savefig(plotName,dpi=300)
-    plt.close()
+    command = [ 'ffmpeg',
+            '-r', str(fps), # FPS of the output video file
+            '-i', 'pipe:0', # The imput comes from a pipe
+            '-an', # Tells FFMPEG not to expect any audio
+            '-threads', str(nThreads), # define number of threads for parallel processing
+            '-loglevel', 'error', # silence the output of ffmpeg to error only
+            '-vcodec', codec, # specify the codec to be used for vidoe encoding
+            '-y', # overwrite the existing file without asking
+            outfname # name of the output file
+            ] 
+    return command
+
+def DictToMovFFMPEG(imDataDict, fps, nThreads, codec, outFname):
+    '''
+    Writes the image data in imDataDict to a movie using subprocess 'ffmpeg'
+    '''
+    writeTime = time.time()
+    imNames = natural_sort(imDataDict.keys())
+    ffmpegCmd = ffmpegCommand(fps, nThreads, codec=codec, outfname=outFname)
+    pipe = sp.Popen(ffmpegCmd, stdin=sp.PIPE)
+    for i,f in enumerate(imNames):
+        im = imDataDict[f]
+        pipe.stdin.write(im) # https://gist.github.com/waylan/2353749
+    pipe.stdin.close()
+    print('Wrote %s at %s in: %.02f Seconds '%(outFname, present_time(), (time.time()-writeTime)))
+    #thread_available.set()
 
 
-def createTar(folderName, inputDir, outputDir):
+def procImList((imNamesList, roilist, templatelist, frameStep, imArgs, group_number)):
     '''
-    takes Inputs as:
-    folderName  : the folder to be compressed
-    inputDir    : the directory containing the folder
-    outputDir   : the directory for output of the tar
+    returns the coordinates of template matched ROIs from roilist using a specific thread
     '''
-    folder = inputDir+folderName
-    f = open(outputDir+folderName+'.tar', 'w')
-    size = subprocess.check_output(['du','-sb', folder]).split('\t')[0]
-    tar = subprocess.Popen(['tar', '-cf', '-', folder, '--remove-files'], stdout=subprocess.PIPE)
-    pv = subprocess.Popen(['pv','-s',size], stdin=tar.stdout, stdout=f)
-    out, err = pv.communicate()
-    if err:
-        print(err)
-    f.close()
+    imNamesListToProc = imNamesList[frameStep * group_number: (frameStep + 1) * group_number]
+    legCoords = np.zeros((frameStep,2*imArgs['nRois']), dtype = np.uint16)
+    #print('Started processing on thread: %d' %group_number)
+    for nFrame, im in enumerate(imNamesListToProc):
+        imData = cv2.imread(im, cv2.IMREAD_GRAYSCALE)
+        legCoords[nFrame] = trackAllTemplates(templatelist, roilist, imArgs, imData)
+    return legCoords
+
+def parallelProcImList(imNamesList, roilist, imArgs, nThreads, pool):
+    '''
+    processes the imList using multiple threads
+    '''
+    frameStep =  int(len(imNamesList) // nThreads)
+    imData = cv2.imread(imNamesList[0], cv2.IMREAD_GRAYSCALE)
+    templatelist = [getTemplate(imData, roi) for roi in roilist]
+    mpArgs = itertools.izip(itertools.repeat(imNamesList), \
+                            itertools.repeat(roilist), \
+                            itertools.repeat(templatelist), \
+                            itertools.repeat(frameStep), \
+                            itertools.repeat(imArgs), \
+                            range(nThreads)
+                            )
+    return pool.map(procImList, mpArgs)
+    
+def procTarImList((imNamesList, roilist, templatelist, frameStep, imArgs, group_number)):
+    '''
+    returns the coordinates of template matched ROIs from roilist using a specific thread
+    '''
+    imNamesListToProc = imNamesList[frameStep * group_number: (frameStep + 1) * group_number]
+    legCoords = np.zeros((frameStep,2*imArgs['nRois']), dtype = np.uint16)
+    #print('Started processing on thread: %d' %group_number)
+    for nFrame, im in enumerate(imNamesListToProc):
+        imData = cv2.imread(im, cv2.IMREAD_GRAYSCALE)
+        legCoords[nFrame] = trackAllTemplates(templatelist, roilist, imArgs, imData)
+    return legCoords
+
+def parallelProcTarIm(imNamesList, roilist, imArgs, nThreads, pool):
+    '''
+    processes the imList using multiple threads
+    '''
+    frameStep =  int(len(imNamesList) // nThreads)
+    imData = cv2.imread(imNamesList[0], cv2.IMREAD_GRAYSCALE)
+    templatelist = [getTemplate(imData, roi) for roi in roilist]
+    mpArgs = itertools.izip(itertools.repeat(imNamesList), \
+                            itertools.repeat(roilist), \
+                            itertools.repeat(templatelist), \
+                            itertools.repeat(frameStep), \
+                            itertools.repeat(imArgs), \
+                            range(nThreads)
+                            )
+    return pool.map(procTarImList, mpArgs)
+    
+
+def tarProcParllel(tarFname, roilist, imArgs, nThreads, pool):
+    '''
+    returns the tracking data for the selected ROIs from the tar file
+    '''
+    logFileWrite(imArgs['logfname'], present_time(), printContent = False)
+    startTime = time.time()
+    print("Started processing at: %s"%present_time())
+    imNamesDict = tarFolderReadtoDict(tarName = tarFname, nCurThrds = 0)
+    imNamesList = natural_sort(imNamesDict.keys())
+    legCoords = parallelProcImList(imNamesList, roilist, imArgs, nThreads, pool)
+    frameStep = legCoords[0].shape[0]
+    legCoordsStack = np.zeros((len(legCoords)*legCoords[0].shape[0], legCoords[0].shape[1]), dtype=np.uint16)
+    for i, coords in enumerate(legCoords):
+        legCoordsStack[i*frameStep:(i+1)*frameStep] = coords
+    print(len(legCoords), legCoords[0].shape, legCoordsStack.shape, legCoordsStack.max(), legCoordsStack.min())
+    print('Done processing in %0.2f Seconds, at: %s' %(time.time()-startTime,present_time()))
+    return legCoordsStack
+
+
+
+
+
+
+
+# fis for tar imDict, it reads all files, not only names. use cv2.imdecode
 
 
 
@@ -958,4 +792,4 @@ def decodeNProcParllel1(vfname, roilist, displayfps, imArgs):
 
 
 
->>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
+

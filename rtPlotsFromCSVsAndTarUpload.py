@@ -191,7 +191,7 @@ def createTar(folderName, inputDir, outputDir):
     pv = subprocess.Popen(['pv','-s',size], stdin=tar.stdout, stdout=f)
     out, err = pv.communicate()
     if err:
-        print err
+        print(err)
     f.close()
 
 
@@ -211,23 +211,23 @@ outDir = outDir+currDir+'/imageData/'
 csvDir = inDirname+'csv/'
 imDataDir = inDirname+'imageData/'
 
-print "Input directory: "+inDirname
-print "Output directory: "+ outDir
+print("Input directory: %s"%inDirname)
+print("Output directory: %s"%outDir)
 
 csvList = ListFiles(csvDir, '*.csv')
 txtList = ListFiles(csvDir, '*.txt')
 step = 1000
 if csvList!=[]:
-    print csvList
+    print(csvList)
 if txtList!=[]:
-    print txtList
-print 'Number of CSV files to process: '+str(len(csvList))
-print 'Number of txt files present: '+str(len(txtList))
+    print(txtList)
+print('Number of CSV files to process: %d'%len(csvList))
+print('Number of txt files present: %d'%len(txtList))
 for csvFile in csvList:
     if csvFile.rstrip('.csv')+'_eucdisAngles.txt' in txtList:
-        print csvDir+csvFile + ' already processed'
+        print(csvDir+csvFile + ' already processed')
     elif csvFile.rstrip('.csv')+'_eucdisAngles.txt' not in txtList:
-        print csvDir+csvFile+ ' at ' +present_time()
+        print(csvDir+csvFile+ ' at ' +present_time())
         csvData = np.genfromtxt(csvDir+csvFile, delimiter=',', dtype = 'int16')
         data = csvToData(csvData, step, csvFile.rstrip('.csv')+'_eucdisAngles.txt')
         plotDistance(data, csvFile.rstrip('.csv'), csvFile.rstrip('.csv')+'_eucDis.png')
@@ -237,7 +237,7 @@ while (1):
     for csvFile in newCsvList:
         if csvFile not in csvList:
             time.sleep(10)# to allow csv to be written by pupa imaging script completley
-            print '\n'+csvDir+csvFile+' at '+present_time()
+            print('\n'+csvDir+csvFile+' at '+present_time())
             csvData = np.genfromtxt(csvDir+csvFile, delimiter=',', dtype = 'int16')
             data = csvToData(csvData, step, csvFile.rstrip('.csv')+'_eucdisAngles.txt')
             plotDistance(data, csvFile.rstrip('.csv'), csvFile.rstrip('.csv')+'_eucDis.png')
@@ -246,9 +246,9 @@ while (1):
                 for dirs in imFolderList:
                     if len(os.listdir(imDataDir+dirs))>=119900:
                         time.sleep(2)
-                        print "\nArchiving "+ dirs+" on: "+present_time()
+                        print("\nArchiving "+ dirs+" on: "+present_time())
                         createTar(dirs, imDataDir, outDir)
-                        print "Archive created on: "+present_time()
+                        print("Archive created on: "+present_time())
             except:
                 pass
         else:
