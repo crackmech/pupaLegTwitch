@@ -28,7 +28,7 @@ trackImSpread = 30          #number of pixles around ROI where the ROI will be t
 csvStep = 1000              # stepsize for getting the reference position of the leg
 
 dirname = imLegTw.getFolder(dirname, 'Select Input Directory with videos')
-fileExt = '.avi'
+fileExt = '.tar'
 genotype = 'VideoTmp'#pupaDetails.split(' -')[0]
 imfolder = 'imageData'
 roifolder = 'roi'
@@ -67,17 +67,17 @@ imArgs = {'nLegs': nLegs,
           'templateKeys': templateKeyDict
            }
 
-vidFlist = imLegTw.natural_sort(glob.glob(os.path.join(dirname, imfolder, '*'+fileExt)))
+flist = imLegTw.natural_sort(glob.glob(os.path.join(dirname, imfolder, '*'+fileExt)))
 pool = mp.Pool(processes=nThreads)
 
-for nVid, vidFname in enumerate(vidFlist):
-    if nVid == 0:
-        roiList = imLegTw.roiSelVid(vidFname, roiList, imArgs, getROI = True) #select ROIs from the first video file
+for nFile, fname in enumerate(flist):
+    if nFile == 0:
+        roiList = imLegTw.roiSelVid(fname, roiList, imArgs, getROI = True) #select ROIs from the first video file
     dirTime = imLegTw.present_time()
-    vidName = vidFname.split(os.sep)[-1]
-    print('Started processing %s (%d/%d) at %s:'%(vidFname, nVid, len(vidFlist), dirTime))
-    imLegTw.logFileWrite(logFileName, "Video file : %s"%vidFname, printContent = False)
-    trackedValues = imLegTw.decodeNProcParllel(vidFname, roiList, displayfps=100, imArgs = imArgs, pool = pool, nThreads = nThreads)
+    vidName = fname.split(os.sep)[-1]
+    print('Started processing %s (%d/%d) at %s:'%(fname, nFile, len(fname), dirTime))
+    imLegTw.logFileWrite(logFileName, "Video file : %s"%fname, printContent = False)
+    trackedValues = imLegTw.decodeNProcParllel(fname, roiList, displayfps=100, imArgs = imArgs, pool = pool, nThreads = nThreads)
     np.savetxt(os.path.join(csvDir, vidName+'_'+dirTime+"_XY.csv"), trackedValues, fmt = '%-7.2f', delimiter = ',')
     eucDisData = imLegTw.csvToData(trackedValues, csvStep, os.path.join(csvDir, vidName+'_'+dirTime+'_XY_eucdisAngles.txt'))
     imLegTw.plotDistance(eucDisData, vidName, os.path.join(csvDir, vidName+'_'+dirTime+'_XY_eucDis.png'))
