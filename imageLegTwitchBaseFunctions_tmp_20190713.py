@@ -39,25 +39,14 @@ import sys
 #from thread import start_new_thread as startNT
 import threading as th
 import os
-<<<<<<< HEAD
-import tkFileDialog as tkd
-import Tkinter as tk
-<<<<<<< HEAD
-
-#import time
-=======
-import multiprocessing as mp
-=======
 #import tkFileDialog as tkd
 #import Tkinter as tk
 #import multiprocessing as mp
->>>>>>> e4989ef88ec6acf025349009697604b564dd7f30
 import itertools
 import glob
 import re
 
 import time
->>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
 #import math
 #import matplotlib.pyplot as plt
 
@@ -326,12 +315,6 @@ def getTemplate(imData, roi):
     Returns the template from the given image data using roi values
     '''
     template = imData[roi[2]:roi[3], roi[0]:roi[1]]
-<<<<<<< HEAD
-    if imData.shape[-1]<3:
-        return template
-    else:
-        return cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
-=======
     if len(imData.shape)>2:
         if imData.shape[-1]<3:
             return template
@@ -339,7 +322,6 @@ def getTemplate(imData, roi):
             return cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
     else:
         return template
->>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
 
 def trackTemplate(template, roi, imData, trackImSpread):
     '''
@@ -368,15 +350,12 @@ def displayImageWithROI(windowName, imData, roilist, imArgs):
     img = resizeImage(imData, imArgs['imResizeFactor'])
     cv2.imshow(windowName, img)
 
-<<<<<<< HEAD
-=======
 def displayIm(windowName, imData, sleepTime):
     '''
     '''
     cv2.imshow(windowName, imData)
     return cv2.waitKey(sleepTime) & 0xFF
 
->>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
 
 #---------------------------------------------------------------------------------#
 
@@ -515,30 +494,17 @@ def getFrameFromVideo(vfname, frameN):
     else:
         print('No frame at given position')
 
-<<<<<<< HEAD
-def displayVid(vfname, roilist, imArgs):
-=======
 def displayVid(vfname, roilist, imArgs, fps):
->>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
     '''
     Starts displaying Video from the input video file,
     update the ROIs by pressing 'u'
     '''
     cap = cv2.VideoCapture(vfname)
-<<<<<<< HEAD
-    
-    while(cap.isOpened()):
-        ret, imData = cap.read()
-        if ret:
-            displayImageWithROI('Displaying Video', imData, roilist, imArgs)
-            k = cv2.waitKey(100) & 0xFF
-=======
     while(cap.isOpened()):
         ret, imData = cap.read()
         if ret:
             displayImageWithROI('Press "u" to update ROIs', imData, roilist, imArgs)
             k = cv2.waitKey(int(1000/fps)) & 0xFF
->>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
             if k == ord('q'):
                 break
             if k == ord("u"):
@@ -550,50 +516,6 @@ def displayVid(vfname, roilist, imArgs, fps):
     cv2.destroyAllWindows()
     return roilist
 
-<<<<<<< HEAD
-def decodeNProc(vfname, roilist, templatelist, imArgs):
-    '''
-    Function for capturing images from the camera and then tracking already defined
-    templates. The template images are updated (using ROIs defined earlier)
-    everytime the function is called. Pressing 'Ctrl+c' pauses the tracking loop
-    and starts displaying live images from the camera. This can be used to select
-    new templates while the function is running.
-    '''
-    logfname = imArgs['logfname']
-    print("%s Press 'Ctrl+C' to pause analysis and start live display"%present_time())
-    legCoords = np.zeros((nFrames,2*imArgs['nRois']), dtype = 'uint16')
-    logFileWrite(logfname, present_time(), printContent = False)
-    for nFrame in range (0,nFrames):
-        try:
-            if nFrame%100 == 0:
-                sys.stdout.write("\r%s: %d"%(present_time(),nFrame))
-                sys.stdout.flush()
-            c.retrieve_buffer(im)
-            imData = np.array(im)
-            if nFrame == 10:
-                roilist = selRoi(imData, roilist, imArgs, \
-                       getROI = False, showRoiImage = False, saveRoiImage = True)
-                templatelist = [getTemplate(imData, roi) for roi in roilist]
-                if np.median(imData)>250: # to stop imaging if the image goes white predominantely
-                    #print("\n-------No pupa to Image anymore!!-------")
-                    logFileWrite(logfname, "------- No pupa to image anymore!! Imaging exited -------", printContent = True)
-                    sys.exit(0)
-            for i, template in enumerate(templatelist):
-                legCoords[nFrame, i:i+2] = trackTemplate(template, roilist[i], imData, imArgs['trackImSpread'])
-            #print('\ni: %d\n nFrame: %d\ntemplateList length: %d\n roiList length: %d'%(i,nFrame, len(templatelist), len(roilist)))
-            if saveIm == True:
-                try:
-                    startNT(cv2.imwrite,(os.path.join(saveDir, str(nFrame)+'.jpeg'),imData,))
-                except:
-                    print("error saving %s"+str(nFrame))
-            elif saveIm == False:
-                if nFrame%1000 == 0:
-                    startNT(cv2.imwrite,(os.path.join(saveDir, str(nFrame)+'.jpeg'),imData,))
-        except KeyboardInterrupt:
-            logFileWrite(logfname, "\nCamera display started on %s"%present_time(), printContent = True)
-            roilist = displayCam(c, im, roilist, imArgs)
-            logFileWrite(logfname, "Camera display exited on %s"%present_time(), printContent = False)
-=======
 def decodeNProc(vfname, roilist, displayfps, imArgs):
     '''
     returns the tracking data for the selected ROIs from the video file
@@ -626,15 +548,10 @@ def decodeNProc(vfname, roilist, displayfps, imArgs):
         else:
             cap.release()
             cv2.destroyAllWindows()
->>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
     logFileWrite(logfname, present_time(), printContent = False)
     logFileWrite(logfname, '----------------------', printContent = False)
     values = legCoords#np.c_[l1,r1,l2,r2,bg,bg1]
     return values
-<<<<<<< HEAD
-   
-     
-=======
   
 def trackAllTemplates(templatelist, roilist, imArgs, imData):
     '''
@@ -958,4 +875,3 @@ def decodeNProcParllel1(vfname, roilist, displayfps, imArgs):
 
 
 
->>>>>>> 2250ed9cf05c37c82af81e40c1ca39c2d4b61dd6
