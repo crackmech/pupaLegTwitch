@@ -5,12 +5,11 @@ Created on Sun Jul 14 09:51:06 2019
 
 @author: aman
 """
-
 import imageLegTwitchBaseFunctions_tmp_20190713 as imLegTw
-import sys
 import numpy as np
 import os
 import glob
+import multiprocessing as mp
 
 try: input = raw_input
 except NameError: pass
@@ -18,27 +17,24 @@ except NameError: pass
 saveImData = True
 saveRoiImage = False
 
-#dirname = '/home/pointgrey/imaging/'
-##dirname = '/media/pointgrey/4TB_2/'
-dirname = '/media/aman/data/'
+dirname = '/media/data_ssd/rawMovies'
+nThreads = 30
 
-#pupaDetails = input('Enter the pupa details : <genotype> - <APF> - <time> - <date>\n')
-imResizeFactor = 0.5 #resize image to this factor for display feed of the camera
-templateResizeFactor = 4 #resize image to this factor for display of the template
-nLegs = 4 # no. of legs to be tracked
-nBgs = 2 # no. of background templates to be tracked
-trackImSpread = 100  #number of pixles around ROI where the ROI will be tracked
+imResizeFactor = 0.5        #resize display image to this factor
+templateResizeFactor = 4    #resize template image to this factor for display
+nLegs = 4                   # no. of legs to be tracked
+nBgs = 2                    # no. of background templates to be tracked
+trackImSpread = 30          #number of pixles around ROI where the ROI will be tracked
+csvStep = 1000              # stepsize for getting the reference position of the leg
 
+dirname = imLegTw.getFolder(dirname, 'Select Input Directory with videos')
 genotype = 'VideoTmp'#pupaDetails.split(' -')[0]
 imfolder = 'imageData'
 roifolder = 'roi'
 csvfolder = 'csv'
 
-try:
-    baseDir, imDir, roiDir, csvDir = imLegTw.createDirs(dirname, genotype, imfolder, roifolder, csvfolder)
-except:
-    print("No directories available, please check!!!")
-    sys.exit()
+baseDir, imDir, roiDir, csvDir = imLegTw.createDirsCheck(dirname, genotype, imfolder,  roifolder, csvfolder, 
+                                                         baseDir = False, imDir = False, roiDir = True, csvDir = True)
 
 roiVal = [504, 510, 110, 116]
 roiColors = [(255,0,0), (0,255,0), (0,0,255), (255,255,0), (255,0,255)]
@@ -50,8 +46,7 @@ templateKeyDict = {1: 'leg L1', 2: 'leg R1', \
                    }        
 
 nRois = nLegs+nBgs
-
-logFileName = os.path.join(baseDir, "camloop.txt")
+logFileName = os.path.join(baseDir, "videoProcessLog.txt")
 roiList = imLegTw.selPreviousRois(roiDir, roiVal, nRois)
 
 imLegTw.logFileWrite(logFileName, '----------------------', printContent = False)
@@ -71,16 +66,23 @@ imArgs = {'nLegs': nLegs,
           'templateKeys': templateKeyDict
            }
 
-vidDir = '/media/aman/data/work/pupaData/20190107_212915_34750TMP/imageData'
-vidFlist = glob.glob(os.path.join(vidDir, '*.avi'))
+vidFlist = imLegTw.natural_sort(glob.glob(os.path.join(dirname, imfolder, '*.avi')))
+pool = mp.Pool(processes=nThreads)
 
 for nVid, vidFname in enumerate(vidFlist):
-    roiList = imLegTw.roiSelVid(vidFname, roiList, imArgs, getROI = True)
+    if nVid == 0:
+        roiList = imLegTw.roiSelVid(vidFname, roiList, imArgs, getROI = True) #select ROIs from the first video file
     dirTime = imLegTw.present_time()
-    print(dirTime)
-    imLegTw.logFileWrite(logFileName, "Video file : %s"%vidFname, printContent = True)
-    trackedValues = imLegTw.decodeNProcParllel(vidFname, roiList, displayfps=100, imArgs = imArgs, nThreads=4)
-    np.savetxt(os.path.join(csvDir, dirTime+"_XY.csv"), trackedValues, fmt = '%-7.2f', delimiter = ',')
-    print("\r\nProcesing for video file %d/%d: "%(nVid, len(vidFlist)))
+    vidName = vidFname.split(os.sep)[-1]
+    print('Started processing %s (%d/%d) at %s:'%(vidFname, nVid, len(vidFlist), dirTime))
+    imLegTw.logFileWrite(logFileName, "Video file : %s"%vidFname, printContent = False)
+    trackedValues = imLegTw.decodeNProcParllel(vidFname, roiList, displayfps=100, imArgs = imArgs, pool = pool, nThreads = nThreads)
+    np.savetxt(os.path.join(csvDir, vidName+'_'+dirTime+"_XY.csv"), trackedValues, fmt = '%-7.2f', delimiter = ',')
+    eucDisData = imLegTw.csvToData(trackedValues, csvStep, os.path.join(csvDir, vidName+'_'+dirTime+'_XY_eucdisAngles.txt'))
+    imLegTw.plotDistance(eucDisData, vidName, os.path.join(csvDir, vidName+'_'+dirTime+'_XY_eucDis.png'))
+pool.close()
+
+
+
 
 
