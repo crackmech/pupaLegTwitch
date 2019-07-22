@@ -86,6 +86,7 @@ def DictToMovFFMPEG(imDataDict, fps, nThreads, codec, outFname):
     Writes the image data in imDataDict to a movie using subprocess 'ffmpeg'
     '''
     writeTime = time.time()
+    print('Writing AVI file %s at %s '%(outFname, th.currentThread().getName()))
     imNames = natural_sort(imDataDict.keys())
     ffmpegCmd = ffmpegCommand(fps, nThreads, codec=codec, outfname=outFname)
     pipe = sp.Popen(ffmpegCmd, stdin=sp.PIPE)
