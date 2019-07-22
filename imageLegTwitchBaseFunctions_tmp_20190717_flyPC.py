@@ -613,7 +613,7 @@ def processAvi(imArgs, fileExt, pool, displayTrackedIms = True):
             roiList = roiSelVid(fname, roiList, imArgs, getROI = True) #select ROIs from the first video file
         dirTime = present_time()
         fileName = fname.split(os.sep)[-1]
-        print('Started processing VIDEO %s (%d/%d) at %s:'%(fname, nFile+1, len(flist), dirTime))
+        print('Started processing VIDEO %s (%d/%d) at: %s'%(fname, nFile+1, len(flist), dirTime))
         logFileWrite(imArgs['logfname'], "Video file : %s"%fname, printContent = False)
         trackedValues = decodeNProcParllel(fname, roiList, displayfps=100, imArgs = imArgs, pool = pool, nThreads = imArgs['nThreads'])
         if displayTrackedIms:
@@ -658,7 +658,7 @@ def processImFolders(imArgs, fileExt, pool, displayTrackedIms = True):
             templatelist = [getTemplate(imData, roi) for roi in roiList]
         dirTime = present_time()
         fileName = fname.split(os.sep)[-1]
-        print('Started processing FOLDER %s (%d/%d) at %s:'%(fname, nFile+1, len(flist), dirTime))
+        print('Started processing FOLDER %s (%d/%d) at: %s'%(fname, nFile+1, len(flist), dirTime))
         logFileWrite(imArgs['logfname'], "Image folder: %s"%fname, printContent = False)
         nFrames = len(imNamesList)
         trackedValues = np.zeros((nFrames,2*imArgs['nRois']), dtype = np.uint16)
@@ -752,7 +752,7 @@ def processTarParallel(imArgs, fileExt, pool, displayTrackedIms = True):
             templatelist = [getTemplate(imData, roi) for roi in roiList]
         dirTime = present_time()
         fileName = fname.split(os.sep)[-1]
-        print('Started processing TAR file %s (%d/%d) at %s:'%(fname, nFile+1, len(flist), dirTime))
+        print('Started processing TAR file %s (%d/%d) at: %s'%(fname, nFile+1, len(flist), dirTime))
         logFileWrite(imArgs['logfname'], "Tar file: %s"%fname, printContent = False)
         nFrames = len(imNamesList)
         trackedValues = np.zeros((nFrames,2*imArgs['nRois']), dtype = np.uint16)
@@ -813,7 +813,7 @@ def processTar(imArgs, fileExt, pool, displayTrackedIms = True):
             templatelist = [getTemplate(imData, roi) for roi in roiList]
         dirTime = present_time()
         fileName = fname.split(os.sep)[-1]
-        print('Started processing TAR %s (%d/%d) at %s:'%(fname, nFile+1, len(flist), dirTime))
+        print('Started processing TAR %s (%d/%d) at: %s'%(fname, nFile+1, len(flist), dirTime))
         logFileWrite(imArgs['logfname'], "Tar file : %s"%fname, printContent = False)
         nFrames = len(imNamesList)
         trackedValues = np.zeros((nFrames,2*imArgs['nRois']), dtype = np.uint16)
@@ -914,7 +914,9 @@ def decodeNProc(vfname, roilist, displayfps, imArgs):
 import math
 import matplotlib.pyplot as plt
 import subprocess
-
+import matplotlib as mpl
+mpl.rcParams['lines.linewidth'] = 1.0
+ 
 def findOffset(data):
     '''
     returns the array of offset values for 'data'. This offset tells the
