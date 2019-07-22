@@ -12,22 +12,70 @@ dirname = '/media/data_ssd/tmp/CS/tmp_120k'
 nThreads = 32
 pupaDetails = ''
 
-procInputFileType = 'tar'
-#procInputFileType = 'avi'
-#procInputFileType = 'imfolder'
+#procInputFileType = 'tar'
+##procInputFileType = 'avi'
+##procInputFileType = 'imfolder'
+#
+#imArgs = imLegTw.getImArgs(dirname, nThreads, pupaDetails, procInputFileType)
+#fileExt = imArgs['fExtension']
+#processFn = imArgs['procType']
+#print('Processing from the %s'%imArgs['fType'])
+#
+#pool = mp.Pool(processes=nThreads)
+#processFn(imArgs, fileExt, pool, displayTrackedIms = False)
+#pool.close()
+#
 
-imArgs = imLegTw.getImArgs(dirname, nThreads, pupaDetails, procInputFileType)
-fileExt = imArgs['fExtension']
-processFn = imArgs['procType']
-print('Processing from the %s'%imArgs['fType'])
+import sys
+if sys.version_info[0] < 3:
+#    import tkFileDialog as tkd
+    import Tkinter as tk
+else:
+#    import tkinter.filedialog as tkd
+    import tkinter as tk
 
-pool = mp.Pool(processes=nThreads)
-processFn(imArgs, fileExt, pool, displayTrackedIms = False)
-pool.close()
+cmdType = {#"CAMERA": 'cam',
+           "TAR File": 'tar',
+           "AVI FILE":'avi',
+           "Images":'imfolder'}
+fType = imLegTw.natural_sort(cmdType.keys())
+
+root = tk.Tk()
+v = tk.StringVar()  # initializing the choice, i.e. Python
 
 
 
+def ShowChoice():
+    procInputFileType = v.get()
+    print('Processing from: %s'%v.get())
+    try:
+        imArgs = imLegTw.getImArgs(dirname, nThreads, pupaDetails, procInputFileType)
+        fileExt = imArgs['fExtension']
+        processFn = imArgs['procType']
+        print('Processing from the %s'%imArgs['fType'])
+        
+        pool = mp.Pool(processes=nThreads)
+        processFn(imArgs, fileExt, pool, displayTrackedIms = False)
+        pool.close()
+    except SystemExit:
+        pass
 
+tk.Label(root, 
+         text="""Process leg twitching from:""",
+         justify = tk.LEFT,
+         padx = 20).pack()
+
+for val, fileType in enumerate(fType):
+    tk.Radiobutton(root, 
+                   indicatoron = 0,
+                   text = fileType,
+                   padx = 20, 
+                   variable = v, 
+                   command = ShowChoice,
+                   value = cmdType[fileType]).pack(anchor = tk.N)
+
+
+root.mainloop()
 
 
 
