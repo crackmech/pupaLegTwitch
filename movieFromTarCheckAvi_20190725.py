@@ -98,6 +98,17 @@ def DictToMovFFMPEG(imDataDict, fps, nThreads, codec, outFname):
             (outFname, present_time(), (time.time()-writeTime), th.currentThread().getName()))
     thread_available.set()
 
+#!/usr/bin/env python
+import sys
+import os
+import re
+
+#t = os.popen('ffmpeg -v 5 -i "%s" -f null - 2>&1' % sys.argv[1]).read()
+#t = re.sub(r"frame=.+?\r", "", t)
+#t = re.sub(r"\[(.+?) @ 0x.+?\]", "[\\1]", t)
+#print t
+#
+
 #baseDir ='/media/data_ssd/'
 
 inDir ='/media/fly/ncbsStorage/twitchData'
@@ -137,10 +148,15 @@ for gtDir in genotypeDirs:
                     for tarFname in tarList:
                         fname = tarFname.split(os.sep)[-1].split('.')[0]
                         outFname = os.path.join(outMovDir, fname+movExt)
-                        if outFname not in outFlist:
+                        if outFname in outFlist:
                             i += 1
                             print(i, tarFname)
-#                            pipe = sp.run("tar -tf '%s' | wc -l"% tarFname, stdout=sp.PIPE, shell=True)
+                            pipe = sp.Popen('ffmpeg -v 5 -i "%s" -f null - 2>&1' % outFname, stdout=sp.PIPE)
+                            out, err = pipe.communicate()
+                            errcode = pipe.returncode
+                            print(out)
+                            print(errcode)
+                            
 #                            print(tarFname, '\n', outFname, '\n', fname)
 #                            makeDirs(outMovDir, printArg='', printEnd='')
 #                            nCurThrds = th.active_count()

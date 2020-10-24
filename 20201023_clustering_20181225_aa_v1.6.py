@@ -12,16 +12,13 @@ import multiprocessing as mp
 import random
 import time
 import glob
-import tkinter as tk
-from tkinter import filedialog as tkd
-
-#import Tkinter as tk
-#import tkFileDialog as tkd
+import Tkinter as tk
+import tkFileDialog as tkd
 import re
 
 def present_time():
-    from datetime import datetime
-    return datetime.now().strftime('%Y%m%d_%H%M%S')
+	from datetime import datetime
+        return datetime.now().strftime('%Y%m%d_%H%M%S')
 
 def natural_sort(l): 
     convert = lambda text: int(text) if text.isdigit() else text.lower() 
@@ -79,10 +76,7 @@ def saveClusPlts(clusData, winSize, nClus, dirString):
     plt.close()
     
 
-
-baseDir='/media/fly/data/rawData/20190131_150038_park25xLRRKex1/csv/'
-
-dirName = getFolder(baseDir)
+dirName = getFolder('.')
 csvFiles = getFiles(dirName, ['*.csv'])
 print ('-----Total number of CsvFiles found: %s-----'%len(csvFiles))
 data = []
@@ -94,7 +88,7 @@ for csvF in csvFiles[:6]:
 dist = np.zeros((len(data)))
 for i in range(len(data)):
     dist[i] = ((30 - data[i][0])**2 + (30 - data[i][1])**2)**0.5
-print(dist)
+
 
 #data = []
 ##for line in open("20161120_075105_XY.csv").readlines():			
@@ -102,9 +96,9 @@ print(dist)
 #	array = [float(x) for x in line.split(',')]
 #	data.append(array)
 
-pltColors = [random_color(alpha=0.6) for _ in range(int(len(data)/5))]
+pltColors = [random_color(alpha=0.6) for _ in xrange(len(data)/5)]
 
-dir_string_root = baseDir+'../Plots_' + present_time()
+dir_string_root = 'Plots_' + present_time()
 os.mkdir(dir_string_root)
 del data
 
@@ -121,30 +115,30 @@ def plotWindows(winSize):
 	for i in range(len(dist) - k):
 		windows[i,:] = dist[i:i+k]
 		if i%1000000==0:
-			print (i)
-	print('===> Processing window length ' + str(k))
+			print i 
+	print '===> Processing window length ' + str(k)
 	windows = np.asarray(windows)
 	dist_vs_num_clusters = []	
 	dir_string = dir_string_root + os.sep + 'Window_length_' + str(k)	
-	print (dir_string)
+	print dir_string
 	os.mkdir(dir_string)
 	#dist_per_cluster = []
 	print('Started clustering at %s'%(present_time()))
 	plotMps = []
-	for num_clusters in range(5,10,5): # number of clusters
+	for num_clusters in range(5,100,5): # number of clusters
 		
 		# KMeans clustering
 		kmeans = KMeans(n_clusters= num_clusters, n_init = 12, max_iter = 300, random_state = 0).fit(windows)
 
 		print ('Kmeans labels: %i at %s'%(len(kmeans.labels_), present_time()))
 
-		clusters_count = [[] for i in range(num_clusters)]
+		clusters_count = [[] for i in xrange(num_clusters)]
 		for i in range(len(kmeans.labels_)):
 			clusters_count[kmeans.labels_[i]].append(windows[i])
 		clusters_count = np.asarray(clusters_count)
 
 		# Sampling the closest data point to the center of each cluster and plotting
-		####labels = np.asarray(kmeans.labels_)
+		labels = np.asarray(kmeans.labels_)
 		samples_from_clusters = np.zeros(shape=(num_clusters, k))
 		tot_cluster_dist = np.zeros(shape=(num_clusters)) #sum of distance of each point to its cluster
 		tot_dist = 0 #sum of total cluster distances for each cluster
@@ -185,7 +179,7 @@ def plotWindows(winSize):
 #		plotMps.append(plotMp)
 #		plotMp.start() 
 		plotMps.append([clusters_count, k, num_clusters, dir_string])
-		print('Done with window length ' + str(k) + ' and #clusters = ' + str(num_clusters) + ' at ' + present_time())
+		print 'Done with window length ' + str(k) + ' and #clusters = ' + str(num_clusters) + ' at ' + present_time()
 	for plotMp in plotMps:
 		saveClusPlts(*plotMp)
 #	print ('Done plotting via multiProcessing with exit code %i at %s'%(plotMp.exitcode, present_time()))
@@ -197,13 +191,14 @@ def plotWindows(winSize):
 	X = [i[1] for i in dist_vs_num_clusters]
 	Y = [i[0] for i in dist_vs_num_clusters]
 	plt.plot(X, Y)
-	plt.xlabel("No. of clusters")
+
+ 	plt.xlabel("No. of clusters")
 	plt.ylabel("Total distances (log normalized)")
 	plt.title('Sum of distances vs. Number of clusters, Window length = %i' %k)
 	plt.savefig(fig_name)
 	
-	print('Plotting distance vs. number of clusters done for window length of ' + str(k))
-	print('\n \n')
+	print 'Plotting distance vs. number of clusters done for window length of ' + str(k)
+	print '\n \n'
     
 nThreads = 6
 startTime = time.time()
@@ -217,14 +212,14 @@ startTime = time.time()
 #
 #print('Total time taken: %0.3f seconds'%(time.time()-startTime))
 
-nThreads = 1
+nThreads = 6
 pool = mp.Pool(processes=nThreads)
-winSizes = np.arange(5,250,20)
+winSizes = np.arange(5,100,5)
 _ = pool.map(plotWindows, winSizes)
 
 
-print('Processing finished at: ' + present_time())
-print('Processing finished in: ' + str(round((time.time()-startTime), 2)) + ' seconds')
+print 'Processing finished at: ' + present_time()
+print 'Processing finished in: ' + str(round((time.time()-startTime), 2)) + ' seconds'
 
 pool.close()
 pool.join()

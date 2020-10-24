@@ -94,7 +94,7 @@ for csvF in csvFiles[:6]:
 dist = np.zeros((len(data)))
 for i in range(len(data)):
     dist[i] = ((30 - data[i][0])**2 + (30 - data[i][1])**2)**0.5
-print(dist)
+
 
 #data = []
 ##for line in open("20161120_075105_XY.csv").readlines():			
@@ -219,7 +219,7 @@ startTime = time.time()
 
 nThreads = 1
 pool = mp.Pool(processes=nThreads)
-winSizes = np.arange(5,250,20)
+winSizes = np.arange(5,100,5)
 _ = pool.map(plotWindows, winSizes)
 
 

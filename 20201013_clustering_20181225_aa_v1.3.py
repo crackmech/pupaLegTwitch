@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Oct 13 20:47:56 2020
+
+@author: fly
+"""
+
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import matplotlib
@@ -14,14 +21,15 @@ import time
 import glob
 import tkinter as tk
 from tkinter import filedialog as tkd
-
 #import Tkinter as tk
 #import tkFileDialog as tkd
 import re
+import itertools
+
 
 def present_time():
-    from datetime import datetime
-    return datetime.now().strftime('%Y%m%d_%H%M%S')
+	from datetime import datetime
+	return datetime.now().strftime('%Y%m%d_%H%M%S')
 
 def natural_sort(l): 
     convert = lambda text: int(text) if text.isdigit() else text.lower() 
@@ -78,9 +86,7 @@ def saveClusPlts(clusData, winSize, nClus, dirString):
         ax.clear()
     plt.close()
     
-
-
-baseDir='/media/fly/data/rawData/20190131_150038_park25xLRRKex1/csv/'
+baseDir='/media/fly/data/rawData/'
 
 dirName = getFolder(baseDir)
 csvFiles = getFiles(dirName, ['*.csv'])
@@ -94,7 +100,7 @@ for csvF in csvFiles[:6]:
 dist = np.zeros((len(data)))
 for i in range(len(data)):
     dist[i] = ((30 - data[i][0])**2 + (30 - data[i][1])**2)**0.5
-print(dist)
+
 
 #data = []
 ##for line in open("20161120_075105_XY.csv").readlines():			
@@ -104,34 +110,38 @@ print(dist)
 
 pltColors = [random_color(alpha=0.6) for _ in range(int(len(data)/5))]
 
-dir_string_root = baseDir+'../Plots_' + present_time()
+dir_string_root = dirName+'../Plots_' + present_time()
 os.mkdir(dir_string_root)
 del data
 
 	
-def plotWindows(winSize):
+def plotWindows(args):
 	'''
 	plot clusters based on the window size
 	'''
 	global dist
+	winSize = args[0]
+	nClusters = args[1]
 	#preprocessing to store windows	
 	k = winSize
 	print('Started processing for window length: %i at %s'%(winSize, present_time()))
+	print(dist)
+	print('len dist = %d'%len(dist))
 	windows = np.zeros((len(dist) - k, k))	
 	for i in range(len(dist) - k):
 		windows[i,:] = dist[i:i+k]
 		if i%1000000==0:
-			print (i)
+			print(i )
 	print('===> Processing window length ' + str(k))
 	windows = np.asarray(windows)
 	dist_vs_num_clusters = []	
 	dir_string = dir_string_root + os.sep + 'Window_length_' + str(k)	
-	print (dir_string)
+	print(dir_string)
 	os.mkdir(dir_string)
 	#dist_per_cluster = []
 	print('Started clustering at %s'%(present_time()))
 	plotMps = []
-	for num_clusters in range(5,10,5): # number of clusters
+	for num_clusters in nClusters: #range(5,10,5): # number of clusters
 		
 		# KMeans clustering
 		kmeans = KMeans(n_clusters= num_clusters, n_init = 12, max_iter = 300, random_state = 0).fit(windows)
@@ -155,10 +165,10 @@ def plotWindows(winSize):
 			for j in range(len(clusters_count[i])):
 				x = np.zeros(shape=(k,))
 				x = np.asarray(kmeans.cluster_centers_[i])
-				dist = np.linalg.norm(x-clusters_count[i][j])
-				tot_per_cluster = tot_per_cluster + dist
-				if(mn > dist):
-					mn = dist
+				dist_1 = np.linalg.norm(x-clusters_count[i][j])
+				tot_per_cluster = tot_per_cluster + dist_1
+				if(mn > dist_1):
+					mn = dist_1
 					cluster_sample = clusters_count[i][j]
 			samples_from_clusters[i] = cluster_sample
 			tot_cluster_dist[i] = tot_per_cluster
@@ -197,6 +207,7 @@ def plotWindows(winSize):
 	X = [i[1] for i in dist_vs_num_clusters]
 	Y = [i[0] for i in dist_vs_num_clusters]
 	plt.plot(X, Y)
+
 	plt.xlabel("No. of clusters")
 	plt.ylabel("Total distances (log normalized)")
 	plt.title('Sum of distances vs. Number of clusters, Window length = %i' %k)
@@ -217,10 +228,12 @@ startTime = time.time()
 #
 #print('Total time taken: %0.3f seconds'%(time.time()-startTime))
 
-nThreads = 1
+
+nThreads = 24
 pool = mp.Pool(processes=nThreads)
-winSizes = np.arange(5,250,20)
-_ = pool.map(plotWindows, winSizes)
+winSizes = np.arange(50,300,25)
+nClusters = np.arange(250,100,-15)
+_ = pool.map(plotWindows, zip(winSizes, itertools.repeat(nClusters)))
 
 
 print('Processing finished at: ' + present_time())

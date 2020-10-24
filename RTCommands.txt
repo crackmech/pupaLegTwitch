@@ -17,7 +17,6 @@ python ./20170410_tmp_setArduinoTempAndLog.py
 
 
 
-
 ./20170331_imaginPupa.bsh
 python ./20170331_tmp_rtPlotsFromCSVsAndTarUpload.py
 
@@ -25,6 +24,9 @@ python ./20170331_tmp_rtPlotsFromCSVsAndTarUpload.py
 ./ArduinoLogs/20151023_PlotTempFromArduinoDataInset.py 1,inset=False,updateDelay=20,skippedRows=22,skippedFooter=10
 
 
+
+------ Convert frames from a folder into a movie using ffmpeg and output a log report ----------------
+FFREPORT=file=../ffreport.log:level=48 ffmpeg -r 100 -i 12303281-%d.jpeg -loglevel verbose -an -vcodec libx264 ../20150326_20150518.avi
 
 
 
