@@ -65,6 +65,7 @@ def getClusDataForClusID(dirname):
     return clusters_count, winSize, nClus, dirString#clusters_count[clusId-1]
 
 baseDir = '/media/aman/New Volume/Aman_thesis/pupaeClusterData/'
+baseDir='/media/fly/data/rawData/PD_pupae_clusterPlots_20201015/PD_pupae_clusterPlots_20201015/'
 
 fname = 'Window_length_100/All_samples_WL=100_per_cluster_nClusters_200.pkl'
 
@@ -119,6 +120,54 @@ plt.plot(park25xLrrk_mean, color=color_2, alpha=0.5)
 plt.ylim(yLimMin,yLimMax)
 plt.fill_between(range(winSize), park25xLrrk_mean-park25xLrrk_std, park25xLrrk_mean+park25xLrrk_std, color=color_2, alpha=0.2)
 plt.show()
+
+
+from scipy.spatial import distance
+
+distances_wp = []
+distances_ww = []
+distances_pp = []
+distances_wp = []
+for data in data_w1118:
+    dist_w = distance.euclidean(np.mean(data, axis=0), w1118_mean)
+    dist_p = distance.euclidean(np.mean(data, axis=0), park25xLrrk_mean)
+    distances_ww.append(dist_w)
+    distances_wp.append(dist_p)
+plt.plot(distances)
+plt.show()
+print(distances)
+for data in data_parkxLRRK:
+    dist_w = distance.euclidean(np.mean(data, axis=0), w1118_mean)
+    dist_p = distance.euclidean(np.mean(data, axis=0), park25xLrrk_mean)
+    distances_ww.append(dist_w)
+    distances_wp.append(dist_p)
+distances = []
+for data in data_parkxLRRK:
+    dist_w = distance.euclidean(np.mean(data, axis=0), w1118_mean)
+    dist_p = distance.euclidean(np.mean(data, axis=0), park25xLrrk_mean)
+    distances.append([dist_w, dist_p])
+plt.plot(distances)
+plt.show()
+print(distances)
+
+
+
+
+from scipy.spatial import procrustes
+from scipy.spatial.distance import directed_hausdorff
+u = w1118_mean
+
+v = np.mean(data_w1118[1], axis=0)
+u.shape[1] == v.shape[1]
+directed_hausdorff(u, v)[0]
+w1118_mean.shape
+np.mean(data_w1118[1], axis=0).shape
+
+mtx1, mtx2, disparity = procrustes(w1118_mean, np.mean(data_w1118[1], axis=0))
+mtx1, mtx2, disparity = procrustes(data_w1118[0][:100], data_parkxLRRK[0][:100])
+
+mtx1, mtx2, disparity = procrustes(data_w1118[0][:100], data_w1118[0][100:200])
+mtx1, mtx2, disparity = procrustes(data_parkxLRRK[0][:100], data_parkxLRRK[0][100:200])
 
 
 #https://lexfridman.com/fast-cross-correlation-and-time-series-synchronization-in-python/

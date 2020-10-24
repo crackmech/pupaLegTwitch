@@ -1,0 +1,12 @@
+import tarfile
+
+fName='/media/fly/ncbsStorage/twitchData/w1118/20150518_2/imageData/20150519_2_032308.tar'
+
+tarNames = []
+with tarfile.open(fName, 'r') as tar_file:
+    print(tar_file.getnames())
+    tarNames.append(tar_file.getnames())
+print len(tarNames)
+
+
+
