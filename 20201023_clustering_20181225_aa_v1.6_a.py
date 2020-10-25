@@ -167,8 +167,11 @@ def createPlot(pltData1, pltData2, tickLabels, pVal):
     plt.scatter(scatterX2, pltData2, color='b', alpha=0.4, zorder=2)
     plt.xlim(0,3)
     plt.ylim(0,10)
+    plt.ylabel('Eucledian distance')
     plt.xticks(barX, tickLabels)
     label_pVal(0,1,'p=%0.3f'%(pVal),barX, np.hstack((np.mean(pltData1),np.mean(pltData2))))
+    plt.savefig(('---').join(tickLabels)+'.svg')
+    plt.savefig(('---').join(tickLabels)+'.pdf')
     plt.show()
 
 
