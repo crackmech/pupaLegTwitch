@@ -65,7 +65,7 @@ def getClusDataForClusID(dirname):
     return clusters_count, winSize, nClus, dirString#clusters_count[clusId-1]
 
 baseDir = '/media/aman/New Volume/Aman_thesis/pupaeClusterData/'
-baseDir='/media/fly/data/rawData/PD_pupae_clusterPlots_20201015/PD_pupae_clusterPlots_20201015/'
+# baseDir='/media/fly/data/rawData/PD_pupae_clusterPlots_20201015/PD_pupae_clusterPlots_20201015/'
 
 fname = 'Window_length_100/All_samples_WL=100_per_cluster_nClusters_200.pkl'
 
@@ -83,8 +83,8 @@ w1118ClusIds = [15,
                 55,
                 42]
 parkxLRRKClusIds = [30,
-                    44,
-                    29]
+                    42,#44,
+                    32]#29]
 
 data_w1118_all = [getClusDataForClusID(baseDir+folder+fname) for i, folder in enumerate(w1118Dirs)]
 data_parkxLRRK_all = [getClusDataForClusID(baseDir+folder+fname) for i, folder in enumerate(parkxLRRKDirs)]
@@ -123,85 +123,104 @@ plt.show()
 
 
 from scipy.spatial import distance
+from scipy.stats import ttest_ind as ttest
 
 distances_wp = []
 distances_ww = []
 distances_pp = []
 distances_wp = []
+distances_pw = []
 for data in data_w1118:
     dist_w = distance.euclidean(np.mean(data, axis=0), w1118_mean)
     dist_p = distance.euclidean(np.mean(data, axis=0), park25xLrrk_mean)
     distances_ww.append(dist_w)
     distances_wp.append(dist_p)
-plt.plot(distances)
+plt.plot(distances_ww)
+plt.plot(distances_wp)
 plt.show()
-print(distances)
+print(distances_ww)
+print(distances_wp)
 for data in data_parkxLRRK:
-    dist_w = distance.euclidean(np.mean(data, axis=0), w1118_mean)
     dist_p = distance.euclidean(np.mean(data, axis=0), park25xLrrk_mean)
-    distances_ww.append(dist_w)
-    distances_wp.append(dist_p)
-distances = []
-for data in data_parkxLRRK:
     dist_w = distance.euclidean(np.mean(data, axis=0), w1118_mean)
-    dist_p = distance.euclidean(np.mean(data, axis=0), park25xLrrk_mean)
-    distances.append([dist_w, dist_p])
-plt.plot(distances)
+    distances_pp.append(dist_p)
+    distances_pw.append(dist_w)
+plt.scatter([1,1.01,1.11], distances_pp, color='r')
+plt.scatter([3,3.01,3.11], distances_pw, color='b')
 plt.show()
-print(distances)
+print(distances_pp)
+print(distances_pw)
+
+
+t,p = ttest(distances_ww, distances_wp)
+print(p)
+t,p = ttest(distances_pp, distances_pw)
+print(p)
+t,p = ttest(distances_wp, distances_pw)
+print(p)
+t,p = ttest(park25xLrrk_mean, w1118_mean)
+print(p)
+# distances = []
+# for data in data_parkxLRRK:
+#     dist_w = distance.euclidean(np.mean(data, axis=0), w1118_mean)
+#     dist_p = distance.euclidean(np.mean(data, axis=0), park25xLrrk_mean)
+#     distances.append([dist_w, dist_p])
+# plt.plot(distances)
+# plt.show()
+# print(distances)
 
 
 
 
-from scipy.spatial import procrustes
-from scipy.spatial.distance import directed_hausdorff
-u = w1118_mean
+# from scipy.spatial import procrustes
+# from scipy.spatial.distance import directed_hausdorff
+# u = w1118_mean
 
-v = np.mean(data_w1118[1], axis=0)
-u.shape[1] == v.shape[1]
-directed_hausdorff(u, v)[0]
-w1118_mean.shape
-np.mean(data_w1118[1], axis=0).shape
+# v = np.mean(data_w1118[1], axis=0)
+# u.shape[1] == v.shape[1]
+# directed_hausdorff(u, v)[0]
+# w1118_mean.shape
+# np.mean(data_w1118[1], axis=0).shape
 
-mtx1, mtx2, disparity = procrustes(w1118_mean, np.mean(data_w1118[1], axis=0))
-mtx1, mtx2, disparity = procrustes(data_w1118[0][:100], data_parkxLRRK[0][:100])
+# mtx1, mtx2, disparity = procrustes(w1118_mean, np.mean(data_w1118[1], axis=0))
+# mtx1, mtx2, disparity = procrustes(data_w1118[0][:100], data_parkxLRRK[0][:100])
 
-mtx1, mtx2, disparity = procrustes(data_w1118[0][:100], data_w1118[0][100:200])
-mtx1, mtx2, disparity = procrustes(data_parkxLRRK[0][:100], data_parkxLRRK[0][100:200])
-
-
-#https://lexfridman.com/fast-cross-correlation-and-time-series-synchronization-in-python/
-from numpy.fft import fft, ifft, fft2, ifft2, fftshift
-
-def cross_correlation_using_fft(x, y):
-    f1 = fft(x)
-    f2 = fft(np.flipud(y))
-    cc = np.real(ifft(f1 * f2))
-    return fftshift(cc)
-
-# shift < 0 means that y starts 'shift' time steps before x # shift > 0 means that y starts 'shift' time steps after x
-def compute_shift(x, y):
-    assert len(x) == len(y)
-    c = cross_correlation_using_fft(x, y)
-    assert len(c) == len(x)
-    zero_index = int(len(x) / 2) - 1
-    shift = zero_index - np.argmax(c)
-    return shift
+# mtx1, mtx2, disparity = procrustes(data_w1118[0][:100], data_w1118[0][100:200])
+# mtx1, mtx2, disparity = procrustes(data_parkxLRRK[0][:100], data_parkxLRRK[0][100:200])
 
 
-nClus_w1118 = data_w1118_all[0][2]
-nClus_parkxLRRK = data_parkxLRRK_all[0][2]
-corrVals_w1118 = np.zeros((nClus_w1118,nClus_w1118), dtype=np.float64)
-corrVals_parkxLRRK = np.zeros((nClus_parkxLRRK,nClus_parkxLRRK), dtype=np.float64)
+# #https://lexfridman.com/fast-cross-correlation-and-time-series-synchronization-in-python/
+# from numpy.fft import fft, ifft, fft2, ifft2, fftshift
+
+# def cross_correlation_using_fft(x, y):
+#     f1 = fft(x)
+#     f2 = fft(np.flipud(y))
+#     cc = np.real(ifft(f1 * f2))
+#     return fftshift(cc)
+
+# # shift < 0 means that y starts 'shift' time steps before x # shift > 0 means that y starts 'shift' time steps after x
+# def compute_shift(x, y):
+#     assert len(x) == len(y)
+#     c = cross_correlation_using_fft(x, y)
+#     assert len(c) == len(x)
+#     zero_index = int(len(x) / 2) - 1
+#     shift = zero_index - np.argmax(c)
+#     return shift
 
 
-corData_Raw = data_w1118_all[0][0]
-corData = [np.mean(clusData, axis=0) for clusData in corData_Raw]
+# nClus_w1118 = data_w1118_all[0][2]
+# nClus_parkxLRRK = data_parkxLRRK_all[0][2]
+# corrVals_w1118 = np.zeros((nClus_w1118,nClus_w1118), dtype=np.float64)
+# corrVals_parkxLRRK = np.zeros((nClus_parkxLRRK,nClus_parkxLRRK), dtype=np.float64)
 
-for i, clusData in enumerate(corData):
-    for j in range(i, len(corData)):
-        corrVals_w1118[i,j] = compute_shift(clusData, corData[j])
-        # corrVals_w1118[i,j] = np.argmax(cross_correlation_using_fft(clusData, corData[j]))
+
+# corData_Raw = data_w1118_all[0][0]
+# corData = [np.mean(clusData, axis=0) for clusData in corData_Raw]
+
+# for i, clusData in enumerate(corData):
+#     for j in range(i, len(corData)):
+#         corrVals_w1118[i,j] = compute_shift(clusData, corData[j])
+#         # corrVals_w1118[i,j] = np.argmax(cross_correlation_using_fft(clusData, corData[j]))
 
 
 
